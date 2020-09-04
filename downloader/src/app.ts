@@ -8,7 +8,7 @@ const app = express();
 
 cron.schedule("0 0,30 * * * *", () => {
   const uri = "http://backend.roundshot.com/cams/241/original";
-  downloadOne(uri, { outputDir: "TrainingData/Unprocessed" });
+  downloadOne(uri, { outputDir: "TrainingData" });
 });
 
 app.listen(3128);

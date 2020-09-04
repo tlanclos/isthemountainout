@@ -14,7 +14,7 @@ args = parser.parse_args()
 
 SCRIPT_PATH = os.path.dirname(os.path.abspath(sys.argv[0]))
 UNPROCESSED_DIR = os.path.abspath(
-    f'{SCRIPT_PATH}/../downloader/TrainingData/Unprocessed')
+    f'{SCRIPT_PATH}/../downloader/TrainingData')
 TRAINING_DATA_DIR = os.path.abspath(f'{SCRIPT_PATH}/TrainingData')
 SAVESTATE_FILE = os.path.join(SCRIPT_PATH, args.input)
 CROPPED_LOCATION = (7868, 604)
