@@ -1,48 +1,70 @@
 import os
-import sys
-import argparse
+from functools import cached_property, lru_cache
 from PIL import Image
 
-parser = argparse.ArgumentParser(
-    description='Process currently unprocessed images and classify them based off savestate file, unclassified images will be placed in an Unclassified directory')
-parser
-parser.add_argument(
-    '-i', '--input', default='savestate.txt', help='Input savestate filename')
-parser.add_argument('--unclassified-directory', default='Unclassified',
-                    help='If an image is not yet classified, store it in this directory')
-args = parser.parse_args()
+from trainer.common.path import unclassified_dir_name
+from trainer.common import savestate
+from typing import Dict
 
-SCRIPT_PATH = os.path.dirname(os.path.abspath(sys.argv[0]))
-UNPROCESSED_DIR = os.path.abspath(
-    f'{SCRIPT_PATH}/../downloader/TrainingData')
-TRAINING_DATA_DIR = os.path.abspath(f'{SCRIPT_PATH}/TrainingData')
-SAVESTATE_FILE = os.path.join(SCRIPT_PATH, args.input)
-CROPPED_LOCATION = (7868, 604)
-SIZE = (224, 224)
 
-state = {}
-if os.path.exists(SAVESTATE_FILE):
-    with open(SAVESTATE_FILE, 'r') as f:
-        for line in f.readlines():
-            filename, _, classification = line.strip().partition(' ')
-            state[filename] = classification
+class CroppingOptions:
+    x: int
+    y: int
+    width: int
+    height: int
 
-for filename in os.listdir(UNPROCESSED_DIR):
-    full_path = os.path.join(UNPROCESSED_DIR, filename)
-    print(f'Processing {full_path}')
-    im = Image.open(full_path)
-    cropped = im.crop((
-        CROPPED_LOCATION[0], CROPPED_LOCATION[1],
-        CROPPED_LOCATION[0] + SIZE[0],
-        CROPPED_LOCATION[1] + SIZE[1]))
+    def __init__(self, *, x: int, y: int, width: int, height: int):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
 
-    if filename in state:
-        classified_path = os.path.join(TRAINING_DATA_DIR, state[filename])
-    else:
-        classified_path = os.path.join(
-            TRAINING_DATA_DIR, args.unclassified_directory)
 
-    if not os.path.exists(classified_path):
-        os.makedirs(classified_path, exist_ok=True)
+class ProcessorOptions:
+    save_state_file: str
+    training_data_dir: str
+    cropping_options: CroppingOptions
 
-    cropped.save(os.path.join(classified_path, filename))
+    def __init__(self, *, save_state_file: str, training_data_dir: str, cropping_options: CroppingOptions):
+        self.save_state_file = save_state_file
+        self.training_data_dir = training_data_dir
+        self.cropping_options = cropping_options
+
+
+class Processor:
+    options: ProcessorOptions
+
+    def __init__(self, options: ProcessorOptions):
+        self.options = options
+
+    def process(self, filepath: str) -> None:
+        state = self.__savestate
+        filename = os.path.basename(filepath)
+        processed = self.__crop(Image.open(filepath))
+        classification_path = self.__classification_path(filename)
+        os.makedirs(classification_path, exist_ok=True)
+        processed.save(os.path.join(classification_path, filename))
+
+    def __crop(self, image: Image) -> Image:
+        cropping_options = self.options.cropping_options
+        return image.crop((
+            cropping_options.x,
+            cropping_options.y,
+            cropping_options.x + cropping_options.width,
+            cropping_options.y + cropping_options.height
+        ))
+
+    @lru_cache(maxsize=4)
+    def __classification_path(self, filename: str) -> str:
+        state = self.__savestate
+        if filename in state:
+            return os.path.join(self.options.training_data_dir, state[filename])
+        else:
+            return os.path.join(self.options.training_data_dir, unclassified_dir_name())
+
+    @cached_property
+    def __savestate(self) -> Dict[str, str]:
+        if os.path.exists(self.options.save_state_file):
+            return savestate.load(self.options.save_state_file)
+        else:
+            return {}
