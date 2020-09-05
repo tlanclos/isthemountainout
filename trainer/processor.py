@@ -40,10 +40,13 @@ class Processor:
     def process(self, filepath: str) -> None:
         state = self.__savestate
         filename = os.path.basename(filepath)
-        processed = self.__crop(Image.open(filepath))
         classification_path = self.__classification_path(filename)
-        os.makedirs(classification_path, exist_ok=True)
-        processed.save(os.path.join(classification_path, filename))
+        final_path = os.path.join(classification_path, filename)
+
+        if not os.path.exists(final_path):
+            processed = self.__crop(Image.open(filepath))
+            os.makedirs(classification_path, exist_ok=True)
+            processed.save(final_path)
 
     def __crop(self, image: Image) -> Image:
         cropping_options = self.options.cropping_options
