@@ -34,6 +34,8 @@ trainer_parser.add_argument(
 classifier_parser = subparsers.add_parser(
     'classifier', help='Classify an image based on the model')
 classifier_parser.add_argument('--image', help='Image to classify')
+classifier_parser.add_argument(
+    '--show', action='store_true', default=False, help='Show the image being classified')
 
 
 args = parser.parse_args()
@@ -79,4 +81,7 @@ elif args.command == 'classifier':
             save_labels_file=os.path.join(get_script_path(), args.save_labels),
         )
     )
-    print(classifier.classify(args.image))
+    classification, confidence, image = classifier.classify(args.image)
+    print(classification, confidence)
+    if args.show:
+        image.show()

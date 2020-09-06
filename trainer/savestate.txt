@@ -27,7 +27,7 @@ MountRainier_2020-09-04T070000.jpg Visible
 MountRainier_2020-09-04T073000.jpg Visible
 MountRainier_2020-09-04T080000.jpg Visible
 MountRainier_2020-09-04T083000.jpg Visible
-MountRainier_2020-09-04T090000.jpg NotVisible
+MountRainier_2020-09-04T090000.jpg Visible
 MountRainier_2020-09-04T093000.jpg NotVisible
 MountRainier_2020-09-04T150000.jpg NotVisible
 MountRainier_2020-09-04T153000.jpg NotVisible
@@ -113,3 +113,12 @@ MountRainier_2020-09-06T083000.jpg Visible
 MountRainier_2020-09-06T090000.jpg Visible
 MountRainier_2020-09-06T093000.jpg Visible
 MountRainier_2020-09-06T103000.jpg NotVisible
+MountRainier_2020-09-06T123000.jpg NotVisible
+MountRainier_2020-09-06T124500.jpg NotVisible
+MountRainier_2020-09-06T130000.jpg NotVisible
+MountRainier_2020-09-06T131500.jpg NotVisible
+MountRainier_2020-09-06T133000.jpg Visible
+MountRainier_2020-09-06T134500.jpg Visible
+MountRainier_2020-09-06T140000.jpg Visible
+MountRainier_2020-09-06T141500.jpg Visible
+MountRainier_2020-09-06T143000.jpg Visible

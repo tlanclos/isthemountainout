@@ -4,6 +4,7 @@ import tensorflow_hub as hub
 from functools import cached_property
 
 from trainer.common import model
+from PIL.Image import Image
 from typing import List, Tuple
 import numpy as np
 
@@ -23,7 +24,7 @@ class Classifier:
     def __init__(self, options: ClassifierOptions):
         self.options = options
 
-    def classify(self, filepath: str) -> Tuple[str, float]:
+    def classify(self, filepath: str) -> Tuple[str, float, Image]:
         physical_devices = tf.config.experimental.list_physical_devices('GPU')
         for physical_device in physical_devices:
             tf.config.experimental.set_memory_growth(physical_device, True)
@@ -34,7 +35,7 @@ class Classifier:
         img_array = tf.expand_dims(img_array, 0)  # Create a batch
 
         score = tf.nn.softmax(self.model(img_array)[0])
-        return self.labels[np.argmax(score)], 100 * np.max(score)
+        return self.labels[np.argmax(score)], 100 * np.max(score), img
 
     @cached_property
     def model(self):
