@@ -1,4 +1,5 @@
 from functools import cached_property
+from matplotlib import pyplot as plt
 
 import tensorflow as tf
 import tensorflow_hub as hub
@@ -12,12 +13,14 @@ class TrainerOptions:
     image_size: (int, int)
     batch_size: int
     saved_model_path: str
+    visualize: bool
 
-    def __init__(self, *, data_dir: str, image_size: (int, int), batch_size: int, saved_model_path: str):
+    def __init__(self, *, data_dir: str, image_size: (int, int), batch_size: int, saved_model_path: str, visualize: bool):
         self.data_dir = data_dir
         self.image_size = image_size
         self.batch_size = batch_size
         self.saved_model_path = saved_model_path
+        self.visualize = visualize
 
 
 class Trainer:
@@ -27,13 +30,29 @@ class Trainer:
         self.options = options
 
     def train(self):
-        self.model.fit(
+        fit = self.model.fit(
             self.train_generator,
             epochs=5,
             steps_per_epoch=self.train_generator.samples // self.train_generator.batch_size,
             validation_data=self.validation_generator,
             validation_steps=self.validation_generator.samples // self.validation_generator.batch_size)
-        tf.saved_model.save(self.model, self.options.saved_model_path)
+        self.__visualize(fit.history)
+        self.model.save(self.options.saved_model_path)
+
+    def __visualize(self, hist):
+        if self.options.visualize:
+            plt.figure()
+            plt.ylabel("Loss (training and validation)")
+            plt.xlabel("Training Steps")
+            plt.ylim([0, 2])
+            plt.plot(hist["loss"])
+
+            plt.figure()
+            plt.ylabel("Accuracy (training and validation)")
+            plt.xlabel("Training Steps")
+            plt.ylim([0, 1])
+            plt.plot(hist["accuracy"])
+            plt.show()
 
     @cached_property
     def model(self):

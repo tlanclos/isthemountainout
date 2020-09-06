@@ -1,5 +1,19 @@
 import tensorflow as tf
 import tensorflow_hub as hub
+from PIL import Image
+
+
+class CroppingOptions:
+    x: int
+    y: int
+    width: int
+    height: int
+
+    def __init__(self, *, x: int, y: int, width: int, height: int):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
 
 
 def create(classes: int, *, handle_base: str = 'mobilenet_v2_100_224', pixels: int = 224):
@@ -22,3 +36,13 @@ def create(classes: int, *, handle_base: str = 'mobilenet_v2_100_224', pixels: i
             from_logits=True, label_smoothing=0.1),
         metrics=['accuracy'])
     return model
+
+
+def image_preprocessor(image: Image) -> Image:
+    cropping_options = CroppingOptions(x=7868, y=604, width=224, height=224)
+    return image.crop((
+        cropping_options.x,
+        cropping_options.y,
+        cropping_options.x + cropping_options.width,
+        cropping_options.y + cropping_options.height
+    ))

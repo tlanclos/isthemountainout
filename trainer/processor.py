@@ -3,32 +3,17 @@ from functools import cached_property, lru_cache
 from PIL import Image
 
 from trainer.common.path import unclassified_dir_name
-from trainer.common import savestate
+from trainer.common import savestate, model
 from typing import Dict
-
-
-class CroppingOptions:
-    x: int
-    y: int
-    width: int
-    height: int
-
-    def __init__(self, *, x: int, y: int, width: int, height: int):
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
 
 
 class ProcessorOptions:
     save_state_file: str
     training_data_dir: str
-    cropping_options: CroppingOptions
 
-    def __init__(self, *, save_state_file: str, training_data_dir: str, cropping_options: CroppingOptions):
+    def __init__(self, *, save_state_file: str, training_data_dir: str):
         self.save_state_file = save_state_file
         self.training_data_dir = training_data_dir
-        self.cropping_options = cropping_options
 
 
 class Processor:
@@ -44,18 +29,9 @@ class Processor:
         final_path = os.path.join(classification_path, filename)
 
         if not os.path.exists(final_path):
-            processed = self.__crop(Image.open(filepath))
+            processed = model.image_preprocessor(Image.open(filepath))
             os.makedirs(classification_path, exist_ok=True)
             processed.save(final_path)
-
-    def __crop(self, image: Image) -> Image:
-        cropping_options = self.options.cropping_options
-        return image.crop((
-            cropping_options.x,
-            cropping_options.y,
-            cropping_options.x + cropping_options.width,
-            cropping_options.y + cropping_options.height
-        ))
 
     @lru_cache(maxsize=4)
     def __classification_path(self, filename: str) -> str:
