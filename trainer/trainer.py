@@ -37,7 +37,7 @@ class Trainer:
             validation_data=self.validation_generator,
             validation_steps=self.validation_generator.samples // self.validation_generator.batch_size)
         self.__visualize(fit.history)
-        self.model.save(self.options.saved_model_path)
+        self.model.save(self.options.saved_model_path, save_format='h5')
 
     def __visualize(self, hist):
         if self.options.visualize:

@@ -66,7 +66,7 @@ elif args.command == 'trainer':
             image_size=(224, 224),
             batch_size=32,
             saved_model_path=os.path.join(
-                get_script_path(), 'isthemountainout'),
+                get_script_path(), 'isthemountainout.h5'),
             visualize=args.visualize
         )
     )
@@ -75,7 +75,7 @@ elif args.command == 'classifier':
     classifier = Classifier(
         ClassifierOptions(
             saved_model_path=os.path.join(
-                get_script_path(), 'isthemountainout'),
+                get_script_path(), 'isthemountainout.h5'),
             save_labels_file=os.path.join(get_script_path(), args.save_labels),
         )
     )

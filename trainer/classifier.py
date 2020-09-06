@@ -1,4 +1,5 @@
 import tensorflow as tf
+import tensorflow_hub as hub
 
 from functools import cached_property
 
@@ -37,7 +38,7 @@ class Classifier:
 
     @cached_property
     def model(self):
-        return tf.keras.models.load_model(self.options.saved_model_path)
+        return tf.keras.models.load_model(self.options.saved_model_path, custom_objects={'KerasLayer': hub.KerasLayer})
 
     @cached_property
     def labels(self) -> List[str]:
