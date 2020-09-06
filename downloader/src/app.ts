@@ -7,9 +7,9 @@ import path from "path";
 
 const app = express();
 
-cron.schedule("0 0,15,30,45 * * * *", () => {
+cron.schedule("0 0,15,30,45 * * * *", async () => {
   const uri = "http://backend.roundshot.com/cams/241/original";
-  downloadOne(uri, { outputDir: "TrainingData" });
+  await downloadOne(uri, { outputDir: "TrainingData" });
 });
 
 app.post("/download-prior", async (request, response) => {
@@ -31,7 +31,10 @@ app.post("/download-prior", async (request, response) => {
 
 app.listen(3128);
 
-function downloadOnePrior(datetime: moment.Moment, options: Options) {
+async function downloadOnePrior(
+  datetime: moment.Moment,
+  options: Options
+): Promise<void> {
   const uri = `https://ismtrainierout.com/timelapse/${datetime.format(
     "YYYY_MM_DD"
   )}/${datetime.format("HHmm")}.jpg`;
@@ -53,21 +56,20 @@ function downloadOnePrior(datetime: moment.Moment, options: Options) {
   });
 }
 
-function downloadOne(uri: string, options: Options) {
+async function downloadOne(uri: string, options: Options): Promise<void> {
   const now = moment();
   const filename = `MountRainier_${now.format("YYYY-MM-DDTHHmmss")}.jpg`;
   const fullFilename = `${options.outputDir}/${filename}`;
 
-  fs.mkdir(options.outputDir, { recursive: true }, (err) => {
-    if (err) {
-      throw err;
-    } else {
+  return fs.promises.mkdir(options.outputDir, { recursive: true }).then(() => {
+    return new Promise((resolve) => {
       request(uri)
         .pipe(fs.createWriteStream(fullFilename))
         .on("close", () => {
           console.log(`Saved ${fullFilename}`);
+          resolve();
         });
-    }
+    });
   });
 }
 
