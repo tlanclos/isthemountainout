@@ -32,6 +32,8 @@ class Classifier:
         img = model.image_preprocessor(
             tf.keras.preprocessing.image.load_img(filepath))
         img_array = tf.keras.preprocessing.image.img_to_array(img)
+        img_array /= 255.0
+        img_array = img_array.astype('float32')
         img_array = tf.expand_dims(img_array, 0)  # Create a batch
 
         score = tf.nn.softmax(self.model(img_array)[0])
