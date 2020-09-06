@@ -86,3 +86,4 @@ MountRainier_2020-09-05T183000.jpg NotVisible
 MountRainier_2020-09-05T190000.jpg NotVisible
 MountRainier_2020-09-05T193000.jpg NotVisible
 MountRainier_2020-09-05T200000.jpg NotVisible
+MountRainier_2020-09-05T213000.jpg Night
