@@ -38,8 +38,17 @@ def create(classes: int, *, handle_base: str = 'mobilenet_v2_100_224', pixels: i
     return model
 
 
-def image_preprocessor(image: Image) -> Image:
-    cropping_options = CroppingOptions(x=7868, y=604, width=224, height=224)
+def image_preprocessor(image: Image, *, algorithm: str = 'default') -> Image:
+    if algorithm == 'prior':
+        cropping_options = CroppingOptions(x=183, y=98, width=120, height=120)
+        return __crop(image, cropping_options=cropping_options).resize((224, 224))
+    else:
+        cropping_options = CroppingOptions(
+            x=7868, y=604, width=224, height=224)
+        return __crop(image, cropping_options=cropping_options)
+
+
+def __crop(image: Image, *, cropping_options: CroppingOptions) -> Image:
     return image.crop((
         cropping_options.x,
         cropping_options.y,

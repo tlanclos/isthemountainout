@@ -20,6 +20,8 @@ parser.add_argument(
 
 processor_parser = subparsers.add_parser(
     'processor', help='Command to process files prior to training')
+processor_parser.add_argument(
+    '--prior', action='store_true', default=False, help='When set, prior training data will be processed (this is not often used, so default is False)')
 
 savestate_parser = subparsers.add_parser(
     'savestate', help='Simple script to save the state of the training data classification')
@@ -48,9 +50,10 @@ if args.command == 'processor':
         )
     )
     unprocessed_dir = os.path.abspath(os.path.join(
-        get_script_path(), '..', 'downloader', 'TrainingData'))
+        get_script_path(), '..', 'downloader', 'TrainingData' if not args.prior else 'TrainingDataPrior'))
     for filename in os.listdir(unprocessed_dir):
-        processor.process(os.path.join(unprocessed_dir, filename))
+        processor.process(os.path.join(unprocessed_dir, filename),
+                          algorithm='prior' if args.prior else 'default')
 elif args.command == 'savestate':
     savestate = SaveState(
         SaveStateOptions(

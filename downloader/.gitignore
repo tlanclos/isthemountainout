@@ -114,4 +114,4 @@ dist
 # End of https://www.toptal.com/developers/gitignore/api/node
 
 # Don't store any training data
-TrainingData/**/*
+TrainingData*/**/*

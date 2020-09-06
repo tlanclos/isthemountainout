@@ -22,14 +22,15 @@ class Processor:
     def __init__(self, options: ProcessorOptions):
         self.options = options
 
-    def process(self, filepath: str) -> None:
+    def process(self, filepath: str, *, algorithm: str = 'default') -> None:
         state = self.__savestate
         filename = os.path.basename(filepath)
         classification_path = self.__classification_path(filename)
         final_path = os.path.join(classification_path, filename)
 
         if not os.path.exists(final_path):
-            processed = model.image_preprocessor(Image.open(filepath))
+            processed = model.image_preprocessor(
+                Image.open(filepath), algorithm=algorithm)
             os.makedirs(classification_path, exist_ok=True)
             processed.save(final_path)
 
