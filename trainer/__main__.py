@@ -3,6 +3,7 @@ import os
 
 from trainer.processor import Processor, ProcessorOptions, CroppingOptions
 from trainer.savestate import SaveState, SaveStateOptions
+from trainer.trainer import Trainer, TrainerOptions
 
 from trainer.common.path import get_script_path
 from trainer.common import savestate
@@ -18,11 +19,13 @@ processor_parser = subparsers.add_parser(
     'processor', help='Command to process files prior to training')
 
 savestate_parser = subparsers.add_parser(
-    'savestate', help='Simple script to save the state of the training data classification'
-)
+    'savestate', help='Simple script to save the state of the training data classification')
 savestate_parser.add_argument(
-    '--force', action='store_true', default=False, help='Force overwrite of all values within savestate file; otherwise, amend only'
-)
+    '--force', action='store_true', default=False, help='Force overwrite of all values within savestate file; otherwise, amend only')
+
+trainer_parser = subparsers.add_parser(
+    'trainer', help='Script to train the model')
+
 
 args = parser.parse_args()
 
@@ -52,3 +55,14 @@ elif args.command == 'savestate':
         )
     )
     savestate.save()
+elif args.command == 'trainer':
+    trainer = Trainer(
+        TrainerOptions(
+            data_dir=os.path.join(get_script_path(), 'TrainingData'),
+            image_size=(224, 224),
+            batch_size=32,
+            saved_model_path=os.path.join(
+                get_script_path(), 'isthemountainout')
+        )
+    )
+    trainer.train()
