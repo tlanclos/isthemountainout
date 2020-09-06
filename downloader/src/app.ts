@@ -6,7 +6,7 @@ import moment from "moment";
 
 const app = express();
 
-cron.schedule("0 0,30 * * * *", () => {
+cron.schedule("0 0,15,30,45 * * * *", () => {
   const uri = "http://backend.roundshot.com/cams/241/original";
   downloadOne(uri, { outputDir: "TrainingData" });
 });
