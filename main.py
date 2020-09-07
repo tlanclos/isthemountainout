@@ -32,7 +32,7 @@ def classify(request):
     state = __get_last_classification(data['bucket'])
     if state != classification:
         posted_image = True
-        __update_last_classification(data['bucket'])
+        __update_last_classification(data['bucket'], state=classification)
     else:
         posted_image = False
 
