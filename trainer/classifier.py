@@ -29,9 +29,9 @@ class Classifier:
         for physical_device in physical_devices:
             tf.config.experimental.set_memory_growth(physical_device, True)
 
-        img = model.image_preprocessor(
-            tf.keras.preprocessing.image.load_img(filepath))
-        img_array = tf.keras.preprocessing.image.img_to_array(img)
+        img = tf.keras.preprocessing.image.load_img(filepath)
+        processed_image = model.image_preprocessor(img)
+        img_array = tf.keras.preprocessing.image.img_to_array(processed_image)
         img_array /= 255.0
         img_array = img_array.astype('float32')
         img_array = tf.expand_dims(img_array, 0)  # Create a batch

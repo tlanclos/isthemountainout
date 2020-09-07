@@ -8,6 +8,7 @@ from trainer.classifier import Classifier, ClassifierOptions
 
 from trainer.common.path import get_script_path
 from trainer.common import savestate
+from PIL import Image
 
 parser = argparse.ArgumentParser(
     description='Collection of scripts used to process and train a classifier')
@@ -87,4 +88,8 @@ elif args.command == 'classifier':
     classification, confidence, image = classifier.classify(args.image)
     print(classification, confidence)
     if args.show:
+        image = image.crop((7036, 162, 8956, 1242))
+        branding = Image.open(os.path.join(
+            get_script_path(), '..', 'branding', 'branding_1920x1080.png'))
+        image.paste(branding, (0, 0), branding)
         image.show()
