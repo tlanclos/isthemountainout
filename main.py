@@ -1,15 +1,12 @@
 import requests
 import shutil
 import os
-import sys
-
-sys.path.append(os.path.join('..'))
+from trainer.classifier import Classifier, ClassifierOptions
 
 classifier = None
 
 
 def classify(request):
-    from trainer.classifier import Classifier, ClassifierOptions
     global classifier
     if classifier is None:
         classifier = Classifier(
