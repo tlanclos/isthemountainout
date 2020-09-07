@@ -12,9 +12,9 @@ def classify(request):
         classifier = Classifier(
             ClassifierOptions(
                 saved_model_path=os.path.join(
-                    '..', 'trainer', 'isthemountainout.h5'),
+                    'trainer', 'isthemountainout.h5'),
                 save_labels_file=os.path.join(
-                    '..', 'trainer', 'savelabels.txt'),
+                    'trainer', 'savelabels.txt'),
             )
         )
 
@@ -22,10 +22,9 @@ def classify(request):
         "http://backend.roundshot.com/cams/241/original"))
     return f'{classification} {confidence:.2f}%'
 
-# download an image and place it in a temporary file
 
-
-def __download_image(url: str, *, to_file: str = 'current.jpg') -> str:
+def __download_image(url: str, *, to_file: str = '/tmp/current.jpg') -> str:
+    # download an image and place it in a temporary file
     request = requests.get(url, stream=True)
     if request.status_code == 200:
         request.raw.decode_content = True
