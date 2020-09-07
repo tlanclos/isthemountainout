@@ -1,6 +1,7 @@
 import requests
 import shutil
 import os
+import io
 from PIL import Image
 from google.cloud import storage
 from typing import Optional
@@ -9,7 +10,8 @@ from trainer.common.path import get_script_path
 
 classifier = None
 branding = None
-STATE_FILE = '/is-the-mountain-out-state.txt'
+STATE_FILE = 'is-the-mountain-out-state.txt'
+IMAGE_FILE = 'is-the-mountain-out-image.png'
 
 
 def classify(request):
@@ -31,11 +33,11 @@ def classify(request):
     data = request.get_json(force=True)
     state = __get_last_classification(data['bucket'])
     if state != classification:
-        posted_image = True
         __update_last_classification(data['bucket'], state=classification)
-    else:
-        posted_image = False
 
+    __update_last_image(data['bucket'], image=branded_image)
+
+    posted_image = state != classification and classification != 'Night'
     return f'{classification} {confidence:.2f}% {posted_image}'
 
 
@@ -70,11 +72,25 @@ def __get_last_classification(bucket: str) -> Optional[str]:
     if not blob:
         return None
     else:
-        return blob.download_as_string().decode('utf-8')
+        return blob.download_as_string().decode('utf-8').strip()
 
 
 def __update_last_classification(bucket: str, *, state: str) -> None:
     client = storage.Client()
     bucket = client.get_bucket(bucket)
     blob = bucket.get_blob(STATE_FILE)
-    blob.update_from_string(state)
+    if blob is None:
+        blob = storage.blob.Blob(STATE_FILE, bucket)
+    blob.upload_from_string(state)
+
+
+def __update_last_image(bucket: str, *, image: Image.Image) -> None:
+    client = storage.Client()
+    bucket = client.get_bucket(bucket)
+    blob = bucket.get_blob(IMAGE_FILE)
+    if blob is None:
+        blob = storage.blob.Blob(IMAGE_FILE, bucket)
+
+    with io.BytesIO() as output:
+        image.save(output, format="PNG")
+        blob.upload_from_string(output.getvalue())
