@@ -2,10 +2,13 @@ import request from "request";
 import fs from "fs";
 import cron from "node-cron";
 import express from "express";
+import bodyParser from "body-parser";
 import moment from "moment";
 import path from "path";
 
 const app = express();
+
+app.use(bodyParser.json());
 
 cron.schedule("0 0,15,30,45 * * * *", async () => {
   const uri = "http://backend.roundshot.com/cams/241/original";
@@ -14,8 +17,8 @@ cron.schedule("0 0,15,30,45 * * * *", async () => {
 
 app.post("/download-prior", async (request, response) => {
   for (
-    let date = moment("20200801T0400");
-    date < moment("20200902T0400");
+    let date = moment(request.body.start);
+    date < moment(request.body.end);
     date = date.add(1, "days")
   ) {
     for (
@@ -44,13 +47,22 @@ async function downloadOnePrior(
     const fullFilename = path.join(options.outputDir, filename);
     // check if file exists and if it does not, then download it
     return fs.promises.access(fullFilename, fs.constants.F_OK).catch(() => {
-      return new Promise((resolve) => {
-        request(uri)
-          .pipe(fs.createWriteStream(fullFilename))
-          .on("close", () => {
+      return new Promise<request.Request | undefined>((resolve) => {
+        const req = request(uri, (_unusedErr, response, _unusedBody) => {
+          if (response.statusCode === 200) {
+            resolve(req);
+          } else {
+            resolve(undefined);
+          }
+        });
+      }).then((req) => {
+        if (req) {
+          req?.pipe(fs.createWriteStream(fullFilename)).on("close", () => {
             console.log(`Saved Prior ${fullFilename}`);
-            resolve();
           });
+        } else {
+          console.log(`Error receiving ${fullFilename}`);
+        }
       });
     });
   });
