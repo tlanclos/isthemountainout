@@ -56,7 +56,7 @@ def __brand_image(image: Image.Image) -> Image.Image:
     global branding
     if branding is None:
         branding = Image.open(os.path.join(
-            get_script_path(), 'branding', 'branding_1920x1080.png'))
+            'branding', 'branding_1920x1080.png'))
 
     image = image.crop((7036, 162, 8956, 1242))
     image.paste(branding, (0, 0), branding)
