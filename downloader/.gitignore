@@ -115,3 +115,4 @@ dist
 
 # Don't store any training data
 TrainingData*/**/*
+*.tar
