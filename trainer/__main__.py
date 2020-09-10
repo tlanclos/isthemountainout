@@ -33,6 +33,8 @@ trainer_parser = subparsers.add_parser(
     'trainer', help='Script to train the model')
 trainer_parser.add_argument(
     '--visualize', action='store_true', default=False, help='Should plots be shown of the training')
+trainer_parser.add_argument(
+    '--disallow-memory-growth', action='store_true', default=False, help='Disallow memory to grow on your GPUs')
 
 classifier_parser = subparsers.add_parser(
     'classifier', help='Classify an image based on the model')
@@ -73,7 +75,8 @@ elif args.command == 'trainer':
             batch_size=32,
             saved_model_path=os.path.join(
                 get_script_path(), 'isthemountainout.h5'),
-            visualize=args.visualize
+            visualize=args.visualize,
+            allow_memory_growth=not args.disallow_memory_growth,
         )
     )
     trainer.train()

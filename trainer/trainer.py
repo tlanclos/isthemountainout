@@ -14,13 +14,15 @@ class TrainerOptions:
     batch_size: int
     saved_model_path: str
     visualize: bool
+    allow_memory_growth: bool
 
-    def __init__(self, *, data_dir: str, image_size: (int, int), batch_size: int, saved_model_path: str, visualize: bool):
+    def __init__(self, *, data_dir: str, image_size: (int, int), batch_size: int, saved_model_path: str, visualize: bool, allow_memory_growth: bool):
         self.data_dir = data_dir
         self.image_size = image_size
         self.batch_size = batch_size
         self.saved_model_path = saved_model_path
         self.visualize = visualize
+        self.allow_memory_growth = allow_memory_growth
 
 
 class Trainer:
@@ -28,6 +30,9 @@ class Trainer:
 
     def __init__(self, options: TrainerOptions):
         self.options = options
+        if self.options.allow_memory_growth:
+            for device in tf.config.experimental.list_physical_devices('GPU'):
+                tf.config.experimental.set_memory_growth(device, True)
 
     def train(self):
         fit = self.model.fit(
