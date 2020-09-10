@@ -39,9 +39,13 @@ def create(classes: int, *, handle_base: str = 'mobilenet_v2_100_224', pixels: i
 
 
 def image_preprocessor(image: Image, *, algorithm: str = 'default') -> Image:
+    # todo(issue #18): update algorithm parameter to use enumeration
     if algorithm == 'prior':
         cropping_options = CroppingOptions(x=183, y=98, width=120, height=120)
         return __crop(image, cropping_options=cropping_options).resize((224, 224))
+    elif algorithm == 'reprocess-from-twitter':
+        cropping_options = CroppingOptions(x=839, y=448, width=224, height=224)
+        return __crop(image, cropping_options=cropping_options)
     else:
         cropping_options = CroppingOptions(
             x=7868, y=604, width=224, height=224)

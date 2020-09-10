@@ -41,6 +41,8 @@ classifier_parser = subparsers.add_parser(
 classifier_parser.add_argument('--image', help='Image to classify')
 classifier_parser.add_argument(
     '--show', action='store_true', default=False, help='Show the image being classified')
+classifier_parser.add_argument(
+    '--preprocess-algorithm', default='default', help='Algorithm to use to preprocess images')
 
 
 args = parser.parse_args()
@@ -86,6 +88,7 @@ elif args.command == 'classifier':
             saved_model_path=os.path.join(
                 get_script_path(), 'isthemountainout.h5'),
             save_labels_file=os.path.join(get_script_path(), args.save_labels),
+            preprocess_algorithm=args.preprocess_algorithm,
         )
     )
     classification, confidence, image = classifier.classify(args.image)
