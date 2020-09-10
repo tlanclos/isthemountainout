@@ -1,5 +1,6 @@
 import argparse
 import os
+import glob
 
 from trainer.processor import Processor, ProcessorOptions
 from trainer.savestate import SaveState, SaveStateOptions
@@ -91,11 +92,12 @@ elif args.command == 'classifier':
             preprocess_algorithm=args.preprocess_algorithm,
         )
     )
-    classification, confidence, image = classifier.classify(args.image)
-    print(classification, confidence)
-    if args.show:
-        image = image.crop((7036, 162, 8956, 1242))
-        branding = Image.open(os.path.join(
-            get_script_path(), '..', 'branding', 'branding_1920x1080.png'))
-        image.paste(branding, (0, 0), branding)
-        image.show()
+    for filename in glob.iglob(args.image):
+        classification, confidence, image = classifier.classify(filename)
+        print(filename, classification, confidence)
+        if args.show:
+            image = image.crop((7036, 162, 8956, 1242))
+            branding = Image.open(os.path.join(
+                get_script_path(), '..', 'branding', 'branding_1920x1080.png'))
+            image.paste(branding, (0, 0), branding)
+            image.show()
