@@ -4,6 +4,7 @@ import glob
 
 from trainer.processor import Processor, ProcessorOptions
 from trainer.savestate import SaveState, SaveStateOptions
+from trainer.loadstate import LoadState, LoadStateOptions
 from trainer.trainer import Trainer, TrainerOptions
 from trainer.classifier import Classifier, ClassifierOptions
 
@@ -29,6 +30,9 @@ savestate_parser = subparsers.add_parser(
     'savestate', help='Simple script to save the state of the training data classification')
 savestate_parser.add_argument(
     '--force', action='store_true', default=False, help='Force overwrite of all values within savestate file; otherwise, amend only')
+
+loadstate_parser = subparsers.add_parser(
+    'loadstate', help='Simple script to load a previous training directory state')
 
 trainer_parser = subparsers.add_parser(
     'trainer', help='Script to train the model')
@@ -70,6 +74,14 @@ elif args.command == 'savestate':
         )
     )
     savestate.save()
+elif args.command == 'loadstate':
+    loadstate = LoadState(
+        LoadStateOptions(
+            saved_state_file=os.path.join(get_script_path(), args.save_state),
+            training_data_dir=os.path.join(get_script_path(), 'TrainingData'),
+        )
+    )
+    loadstate.load()
 elif args.command == 'trainer':
     trainer = Trainer(
         TrainerOptions(
