@@ -18,5 +18,7 @@ conda create --name tf_gpu \
   ipython_genutils \
   nbformat \
   pillow \
-  matplotlib
+  pydot \
+  graphviz \
+  scikit-learn
 ```

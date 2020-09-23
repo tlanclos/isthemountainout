@@ -28,9 +28,9 @@ def classify(request):
         classifier = Classifier(
             ClassifierOptions(
                 saved_model_path=os.path.join(
-                    'trainer', 'isthemountainout.h5'),
+                    'trainer', 'v2', 'isthemountainout.h5'),
                 save_labels_file=os.path.join(
-                    'trainer', 'savelabels.txt'),
+                    'trainer', 'v2', 'savelabels.txt'),
             )
         )
 
