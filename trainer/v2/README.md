@@ -12,13 +12,15 @@ Create a virtual environment named `tf_gpu` containing tensorflow including all 
 
 ```
 conda create --name tf_gpu \
-  tensorflow-gpu==2.1.0 \
-  tensorflow-hub \
+  python=3.8 \
   ipykernel \
   ipython_genutils \
   nbformat \
   pillow \
   pydot \
   graphviz \
+  matplotlib \
   scikit-learn
+conda activate tf_gpu
+pip install tensorflow-gpu==2.3.0 tensorflow-hub
 ```
