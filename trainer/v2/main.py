@@ -27,12 +27,16 @@ def classify(request) -> str:
     # deterimine if there is a change in states
     data = request.get_json(force=True)
     last_classification = __get_last_classification(bucket=data['bucket'])
+
+    # update the saved classification states (even "Night") only if it changes to optimize operations
+    if last_classification != classification:
+        __update_last_classification(bucket=data['bucket'], classification=classification)
+
     if last_classification != classification and classification != 'Night':
         # calculate the branded image
         branded = brand(image, brand=__load_brand())
 
-        # update the saved classification states
-        __update_last_classification(bucket=data['bucket'], classification=classification)
+        # update the last successful image detection
         __update_last_image(bucket=data['bucket'], image=branded)
 
         # post image to twitter
