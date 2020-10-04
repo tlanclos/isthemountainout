@@ -145,7 +145,7 @@ def __gen_model(classes: int) -> tf.keras.Model:
         ),
     ]),
     tf.keras.layers.Dropout(0.3),
-    tf.keras.layers.Dense(len(classes)),
+    tf.keras.layers.Dense(classes),
     tf.keras.layers.Activation('softmax'))
     model = tf.keras.Model(inputs=inputs, outputs=outputs)
     model.build(input_shape=(None, *shape))
