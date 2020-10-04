@@ -1,6 +1,10 @@
 import json
+import os
+import io
+import common.model as m
 import tensorflow as tf
-from common import twitter, downloader, image, classifier, model
+from common import twitter, downloader, image
+from common.classifier import Classifier
 from google.cloud import storage
 from PIL import Image
 from typing import List, Optional
@@ -13,11 +17,11 @@ def classify(request) -> str:
     # initialize labels, model, and classifier
     __setup_gpu()
     labels = __load_labels()
-    classifier = classifier.Classifier(model=__gen_model(len(labels)), labels=labels)
+    classifier = Classifier(model=__gen_model(len(labels)), labels=labels)
 
     # download the image, preprocess it, and get its classification/confidence
     image = downloader.download_image('http://backend.roundshot.com/cams/241/original')
-    classification, confidence = classifier.classify(i.preprocess(image))
+    classification, confidence = classifier.classify(image.preprocess(image))
 
     # deterimine if there is a change in states
     data = request.get_json(force=True)
@@ -34,7 +38,7 @@ def classify(request) -> str:
         print('Posting image to twitter!')
         twitter.tweet(
             keys=__load_twitter_keys(bucket=data['bucket']),
-            tweet_status=t.message_for(classification),
+            tweet_status=twitter.message_for(classification),
             image=branded)
 
     return f'{classification} {confidence:.2f}%'
@@ -101,9 +105,9 @@ def __update_last_image(*, bucket: str, image: Image) -> None:
 def __gen_model(classes: int) -> tf.keras.Model:
     shape = (224, 224, 3)
     inputs = tf.keras.Input(shape=shape)
-    outputs = model.chained(
+    outputs = m.chained(
     tf.keras.layers.add([
-        model.chained(
+        m.chained(
             inputs,
             tf.keras.layers.Lambda(
                 lambda image: tf.image.rgb_to_grayscale(image)),
@@ -121,7 +125,7 @@ def __gen_model(classes: int) -> tf.keras.Model:
             tf.keras.layers.Dropout(0.2),
             tf.keras.layers.Dense(32),
         ),
-        model.chained(
+        m.chained(
             inputs,
             tf.keras.layers.Lambda(
                 lambda image: tf.image.rgb_to_grayscale(image)),
