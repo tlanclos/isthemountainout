@@ -3,8 +3,9 @@ import os
 import io
 import common.model as m
 import tensorflow as tf
-from common import twitter, downloader, image
+from common import twitter, downloader
 from common.classifier import Classifier
+from common.image import preprocess, brand
 from google.cloud import storage
 from PIL import Image
 from typing import List, Optional
@@ -21,14 +22,14 @@ def classify(request) -> str:
 
     # download the image, preprocess it, and get its classification/confidence
     image = downloader.download_image('http://backend.roundshot.com/cams/241/original')
-    classification, confidence = classifier.classify(image.preprocess(image))
+    classification, confidence = classifier.classify(preprocess(image))
 
     # deterimine if there is a change in states
     data = request.get_json(force=True)
     last_classification = __get_last_classification(bucket=data['bucket'])
     if last_classification != classification and classification != 'Night':
         # calculate the branded image
-        branded = image.brand(image, brand=__load_brand())
+        branded = brand(image, brand=__load_brand())
 
         # update the saved classification states
         __update_last_classification(bucket=data['bucket'], classification=classification)
