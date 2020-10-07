@@ -1,11 +1,14 @@
 import json
-import os
 import io
+import os
+
 import common.model as m
 import tensorflow as tf
+
 from common import twitter, downloader
 from common.classifier import Classifier
 from common.image import preprocess, brand
+from enum import Enum
 from google.cloud import storage
 from PIL import Image
 from typing import List, Optional
@@ -13,6 +16,18 @@ from typing import List, Optional
 LAST_CLASSIFICATION_STATE_FILE = 'is-the-mountain-out-state.txt'
 LAST_IMAGE_STATE_FILE = 'is-the-mountain-out-image.png'
 
+class Label(Enum):
+    NIGHT = 'Night'
+    NOT_VISIBLE = 'NotVisible'
+    MYSTICAL = 'Mystical'
+    BEAUTIFUL = 'Beautiful'
+
+notable_transitions = {
+    Label.NIGHT: {Label.NOT_VISIBLE, Label.MYSTICAL, Label.BEAUTIFUL},
+    Label.NOT_VISIBLE: {Label.MYSTICAL, Label.BEAUTIFUL},
+    Label.MYSTICAL: {Label.BEAUTIFUL},
+    Label.BEAUTIFUL: {Label.NOT_VISIBLE}
+}
 
 def classify(request) -> str:
     # initialize labels, model, and classifier
@@ -23,21 +38,19 @@ def classify(request) -> str:
     # download the image, preprocess it, and get its classification/confidence
     image = downloader.download_image('http://backend.roundshot.com/cams/241/original')
     classification, confidence = classifier.classify(preprocess(image))
+    classification = Label(classification)
 
     # deterimine if there is a change in states
     data = request.get_json(force=True)
-    last_classification = __get_last_classification(bucket=data['bucket'])
+    last_classification = Label(__get_last_classification(bucket=data['bucket']))
 
-    # update the saved classification states (even "Night") only if it changes to optimize operations
-    if last_classification != classification:
-        __update_last_classification(bucket=data['bucket'], classification=classification)
-
-    if last_classification != classification and classification != 'Night':
+    if classification in notable_transitions[last_classification]:
         # calculate the branded image
         branded = brand(image, brand=__load_brand())
 
-        # update the last successful image detection
+        # update the last successful image detection and status
         __update_last_image(bucket=data['bucket'], image=branded)
+        __update_last_classification(bucket=data['bucket'], classification=classification)
 
         # post image to twitter
         print('Posting image to twitter!')
@@ -45,6 +58,9 @@ def classify(request) -> str:
             keys=__load_twitter_keys(bucket=data['bucket']),
             tweet_status=twitter.message_for(classification),
             image=branded)
+    elif classification == Label.NIGHT:
+        # ensure that the status gets reset at night
+        __update_last_classification(bucket=data['bucket'], classification=classification)
 
     return f'{classification} {confidence:.2f}%'
 
