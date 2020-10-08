@@ -1,5 +1,6 @@
 import json
 import io
+import logging
 import os
 
 import common.model as m
@@ -10,6 +11,8 @@ from common.classifier import Classifier
 from common.image import preprocess, brand
 from enum import Enum
 from google.cloud import storage
+from google.cloud import logging as cloud_logging
+from google.cloud.logging.handlers import CloudLoggingHandler
 from PIL import Image
 from typing import List, Optional
 
@@ -28,6 +31,11 @@ notable_transitions = {
     Label.MYSTICAL: {Label.BEAUTIFUL},
     Label.BEAUTIFUL: {Label.NOT_VISIBLE}
 }
+client = cloud_logging.Client()
+handler = CloudLoggingHandler(client)
+logger = logging.getLogger('cloudLogger')
+logger.setLevel(logging.INFO)
+logger.addHandler(handler)
 
 def classify(request) -> str:
     # initialize labels, model, and classifier
@@ -62,6 +70,7 @@ def classify(request) -> str:
         # ensure that the status gets reset at night
         __update_last_classification(bucket=data['bucket'], classification=classification.value)
 
+    logging.info(f'classification={classification} confidence={confidence:.2f}%')
     return f'{classification} {confidence:.2f}%'
 
 

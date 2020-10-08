@@ -23,4 +23,6 @@ conda create --name tf_gpu \
   scikit-learn
 conda activate tf_gpu
 pip install tensorflow-gpu==2.3.0 tensorflow-hub
+pip install google-cloud-storage==1.16.1
+pip install google-cloud-logging==1.15.1
 ```
