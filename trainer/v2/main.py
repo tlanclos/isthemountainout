@@ -50,7 +50,7 @@ def classify(request) -> str:
 
         # update the last successful image detection and status
         __update_last_image(bucket=data['bucket'], image=branded)
-        __update_last_classification(bucket=data['bucket'], classification=classification)
+        __update_last_classification(bucket=data['bucket'], classification=classification.value)
 
         # post image to twitter
         print('Posting image to twitter!')
@@ -60,7 +60,7 @@ def classify(request) -> str:
             image=branded)
     elif classification == Label.NIGHT:
         # ensure that the status gets reset at night
-        __update_last_classification(bucket=data['bucket'], classification=classification)
+        __update_last_classification(bucket=data['bucket'], classification=classification.value)
 
     return f'{classification} {confidence:.2f}%'
 
