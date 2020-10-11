@@ -6,9 +6,12 @@ import os
 import common.model as m
 import tensorflow as tf
 
+from astral import LocationInfo
+from astral.sun import sun
 from common import twitter, downloader
 from common.classifier import Classifier
 from common.image import preprocess, brand
+from datetime import datetime, timezone
 from enum import Enum
 from google.cloud import storage
 from google.cloud import logging as cloud_logging
@@ -25,6 +28,13 @@ class Label(Enum):
     MYSTICAL = 'Mystical'
     BEAUTIFUL = 'Beautiful'
 
+seattle = LocationInfo(
+    name='Seattle',
+    region='Washington',
+    timezone='America/Los_Angeles',
+    latitude=47.6209673,
+    longitude=-122.348993
+)
 notable_transitions = {
     Label.NIGHT: {Label.NOT_VISIBLE, Label.MYSTICAL, Label.BEAUTIFUL},
     Label.NOT_VISIBLE: {Label.MYSTICAL, Label.BEAUTIFUL},
@@ -48,6 +58,12 @@ def classify(request) -> str:
     classification, confidence = classifier.classify(preprocess(image))
     classification = Label(classification)
 
+    now = datetime.now(timezone.utc)
+    if classification == Label.NIGHT and not __is_night(now):
+        nowstr = now.strftime('%B %d %Y %H:%M:%S %Z')
+        logging.warning(f'Faulty classification detected [{classification}] @ [{nowstr}]')
+        return f'{classification} {confidence:.2f}%'
+
     # deterimine if there is a change in states
     data = request.get_json(force=True)
     last_classification = Label(__get_last_classification(bucket=data['bucket']))
@@ -61,7 +77,7 @@ def classify(request) -> str:
         __update_last_classification(bucket=data['bucket'], classification=classification.value)
 
         # post image to twitter
-        print('Posting image to twitter!')
+        logging.info('Posting image to twitter!')
         twitter.tweet(
             keys=__load_twitter_keys(bucket=data['bucket']),
             tweet_status=twitter.message_for(classification),
@@ -73,6 +89,11 @@ def classify(request) -> str:
     logging.info(f'classification={classification} confidence={confidence:.2f}%')
     return f'{classification} {confidence:.2f}%'
 
+
+def __is_night(date: datetime) -> bool:
+    info = sun(seattle.observer, date=datetime(year=date.year, month=date.month, day=date.day))
+    return date < info['dawn'] or date > info['dusk']
+    
 
 def __setup_gpu() -> None:
     for device in tf.config.experimental.list_physical_devices('GPU'):
