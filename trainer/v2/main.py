@@ -1,6 +1,5 @@
 import json
 import io
-import logging
 import os
 
 import tensorflow as tf
@@ -13,8 +12,6 @@ from common.image import preprocess, brand
 from datetime import datetime, timezone
 from enum import Enum
 from google.cloud import storage
-from google.cloud import logging as cloud_logging
-from google.cloud.logging.handlers import CloudLoggingHandler
 from PIL import Image
 from typing import List, Optional
 
@@ -42,11 +39,6 @@ notable_transitions = {
     Label.MYSTICAL: {Label.BEAUTIFUL},
     Label.BEAUTIFUL: {Label.NOT_VISIBLE}
 }
-client = cloud_logging.Client()
-handler = CloudLoggingHandler(client)
-logger = logging.getLogger('cloudLogger')
-logger.setLevel(logging.INFO)
-logger.addHandler(handler)
 
 
 def classify(request) -> str:
@@ -65,14 +57,15 @@ def classify(request) -> str:
     now = datetime.now(timezone.utc)
     if classification == Label.NIGHT and not __is_night(now):
         nowstr = now.strftime('%B %d %Y %H:%M:%S %Z')
-        logging.warning(
-            f'Faulty classification detected [{classification}] @ [{nowstr}]')
+        print(
+            f'[WARN] Faulty classification detected [{classification}] @ [{nowstr}]')
         return f'{classification} {confidence:.2f}%'
 
     # deterimine if there is a change in states
     data = request.get_json(force=True)
     last_classification = Label(
         __get_last_classification(bucket=data['bucket']))
+    print(f'[INFO] Last classification was {last_classification}')
 
     if classification in notable_transitions[last_classification]:
         # calculate the branded image
@@ -84,7 +77,7 @@ def classify(request) -> str:
             bucket=data['bucket'], classification=classification.value)
 
         # post image to twitter
-        logging.info('Posting image to twitter!')
+        print('[INFO] Posting image to twitter!')
         twitter.tweet(
             keys=__load_twitter_keys(bucket=data['bucket']),
             tweet_status=twitter.message_for(classification),
@@ -94,8 +87,8 @@ def classify(request) -> str:
         __update_last_classification(
             bucket=data['bucket'], classification=classification.value)
 
-    logging.info(
-        f'classification={classification} confidence={confidence:.2f}%')
+    print(
+        f'[INFO] classification={classification} confidence={confidence:.2f}%')
     return f'{classification} {confidence:.2f}%'
 
 
@@ -148,6 +141,7 @@ def __update_last_classification(*, bucket: str, classification: str) -> None:
     blob = bucket.get_blob(LAST_CLASSIFICATION_STATE_FILE)
     if blob is None:
         blob = storage.blob.Blob(LAST_CLASSIFICATION_STATE_FILE, bucket)
+    print(f'[INFO] Updating classification to {classification}')
     blob.upload_from_string(classification)
 
 
