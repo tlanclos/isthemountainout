@@ -1,5 +1,6 @@
 from PIL import Image
 
+
 def preprocess(image: Image) -> Image:
     return crop(image, x=7868, y=604, width=224, height=224)
 
