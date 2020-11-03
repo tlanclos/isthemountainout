@@ -3,12 +3,11 @@ import io
 import logging
 import os
 
-import common.model as m
 import tensorflow as tf
 
 from astral import LocationInfo
 from astral.sun import sun
-from common import twitter, downloader
+from common import twitter, downloader, frozenmodel
 from common.classifier import Classifier
 from common.image import preprocess, brand
 from datetime import datetime, timezone
@@ -22,11 +21,13 @@ from typing import List, Optional
 LAST_CLASSIFICATION_STATE_FILE = 'is-the-mountain-out-state.txt'
 LAST_IMAGE_STATE_FILE = 'is-the-mountain-out-image.png'
 
+
 class Label(Enum):
     NIGHT = 'Night'
     NOT_VISIBLE = 'NotVisible'
     MYSTICAL = 'Mystical'
     BEAUTIFUL = 'Beautiful'
+
 
 seattle = LocationInfo(
     name='Seattle',
@@ -47,26 +48,31 @@ logger = logging.getLogger('cloudLogger')
 logger.setLevel(logging.INFO)
 logger.addHandler(handler)
 
+
 def classify(request) -> str:
     # initialize labels, model, and classifier
     __setup_gpu()
     labels = __load_labels()
-    classifier = Classifier(model=__gen_model(len(labels)), labels=labels)
+    classifier = Classifier(
+        model=frozenmodel.generate(len(labels)), labels=labels)
 
     # download the image, preprocess it, and get its classification/confidence
-    image = downloader.download_image('http://backend.roundshot.com/cams/241/original')
+    image = downloader.download_image(
+        'http://backend.roundshot.com/cams/241/original')
     classification, confidence = classifier.classify(preprocess(image))
     classification = Label(classification)
 
     now = datetime.now(timezone.utc)
     if classification == Label.NIGHT and not __is_night(now):
         nowstr = now.strftime('%B %d %Y %H:%M:%S %Z')
-        logging.warning(f'Faulty classification detected [{classification}] @ [{nowstr}]')
+        logging.warning(
+            f'Faulty classification detected [{classification}] @ [{nowstr}]')
         return f'{classification} {confidence:.2f}%'
 
     # deterimine if there is a change in states
     data = request.get_json(force=True)
-    last_classification = Label(__get_last_classification(bucket=data['bucket']))
+    last_classification = Label(
+        __get_last_classification(bucket=data['bucket']))
 
     if classification in notable_transitions[last_classification]:
         # calculate the branded image
@@ -74,7 +80,8 @@ def classify(request) -> str:
 
         # update the last successful image detection and status
         __update_last_image(bucket=data['bucket'], image=branded)
-        __update_last_classification(bucket=data['bucket'], classification=classification.value)
+        __update_last_classification(
+            bucket=data['bucket'], classification=classification.value)
 
         # post image to twitter
         logging.info('Posting image to twitter!')
@@ -84,16 +91,19 @@ def classify(request) -> str:
             image=branded)
     elif classification == Label.NIGHT:
         # ensure that the status gets reset at night
-        __update_last_classification(bucket=data['bucket'], classification=classification.value)
+        __update_last_classification(
+            bucket=data['bucket'], classification=classification.value)
 
-    logging.info(f'classification={classification} confidence={confidence:.2f}%')
+    logging.info(
+        f'classification={classification} confidence={confidence:.2f}%')
     return f'{classification} {confidence:.2f}%'
 
 
 def __is_night(date: datetime) -> bool:
-    info = sun(seattle.observer, date=datetime(year=date.year, month=date.month, day=date.day))
+    info = sun(seattle.observer, date=datetime(
+        year=date.year, month=date.month, day=date.day))
     return date < info['dawn'] or date > info['dusk']
-    
+
 
 def __setup_gpu() -> None:
     for device in tf.config.experimental.list_physical_devices('GPU'):
@@ -152,56 +162,6 @@ def __update_last_image(*, bucket: str, image: Image) -> None:
         image.save(output, format="PNG")
         blob.upload_from_string(output.getvalue())
 
-
-def __gen_model(classes: int) -> tf.keras.Model:
-    shape = (224, 224, 3)
-    inputs = tf.keras.Input(shape=shape)
-    outputs = m.chained(
-    tf.keras.layers.add([
-        m.chained(
-            inputs,
-            tf.keras.layers.Lambda(
-                lambda image: tf.image.rgb_to_grayscale(image)),
-            tf.keras.layers.Conv2D(
-                filters=64, kernel_size=3, activation='relu'),
-            tf.keras.layers.MaxPooling2D(2),
-            tf.keras.layers.Conv2D(
-                filters=64, kernel_size=3, activation='relu'),
-            tf.keras.layers.MaxPooling2D(2),
-            tf.keras.layers.Dropout(0.1),
-            tf.keras.layers.Conv2D(
-                filters=64, kernel_size=3, activation='relu'),
-            tf.keras.layers.MaxPooling2D(2),
-            tf.keras.layers.Flatten(),
-            tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(32),
-        ),
-        m.chained(
-            inputs,
-            tf.keras.layers.Lambda(
-                lambda image: tf.image.rgb_to_grayscale(image)),
-            tf.keras.layers.Conv2DTranspose(
-                filters=64, kernel_size=3, activation='relu'),
-            tf.keras.layers.MaxPooling2D(2),
-            tf.keras.layers.Conv2DTranspose(
-                filters=64, kernel_size=3, activation='relu'),
-            tf.keras.layers.MaxPooling2D(2),
-            tf.keras.layers.Dropout(0.1),
-            tf.keras.layers.Conv2DTranspose(
-                filters=64, kernel_size=3, activation='relu'),
-            tf.keras.layers.MaxPooling2D(2),
-            tf.keras.layers.Flatten(),
-            tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(32),
-        ),
-    ]),
-    tf.keras.layers.Dropout(0.3),
-    tf.keras.layers.Dense(classes),
-    tf.keras.layers.Activation('softmax'))
-    model = tf.keras.Model(inputs=inputs, outputs=outputs)
-    model.build(input_shape=(None, *shape))
-    model.load_weights('isthemountainout.h5')
-    return model
 
 if __name__ == '__main__':
     class TestRequest:
