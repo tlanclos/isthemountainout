@@ -66,7 +66,6 @@ def classify(request) -> str:
     data = request.get_json(force=True)
     last_classification = __get_last_classification()
     print(f'[INFO] Last classification was {last_classification.value}')
-    __update_last_classification(classification=classification)
 
     if classification in notable_transitions[last_classification]:
         # calculate the branded image
