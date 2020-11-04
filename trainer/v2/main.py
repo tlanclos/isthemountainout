@@ -1,5 +1,4 @@
 import json
-import io
 import os
 
 import tensorflow as tf
@@ -9,14 +8,16 @@ from astral.sun import sun
 from common import twitter, downloader, frozenmodel
 from common.classifier import Classifier
 from common.image import preprocess, brand
+from googleapiclient.discovery import build
 from datetime import datetime, timezone
 from enum import Enum
 from google.cloud import storage
 from PIL import Image
-from typing import List, Optional
+from typing import List
 
 LAST_CLASSIFICATION_STATE_FILE = 'is-the-mountain-out-state.txt'
 LAST_IMAGE_STATE_FILE = 'is-the-mountain-out-image.png'
+SPREADSHEET_ID = '1nMkjiqMvsOhj-ljEab2aBvNWy3bJXdot3u2vRXsyI5Q'
 
 
 class Label(Enum):
@@ -63,18 +64,16 @@ def classify(request) -> str:
 
     # deterimine if there is a change in states
     data = request.get_json(force=True)
-    last_classification = Label(
-        __get_last_classification(bucket=data['bucket']))
-    print(f'[INFO] Last classification was {last_classification}')
+    last_classification = __get_last_classification()
+    print(f'[INFO] Last classification was {last_classification.value}')
+    __update_last_classification(classification=classification)
 
     if classification in notable_transitions[last_classification]:
         # calculate the branded image
         branded = brand(image, brand=__load_brand())
 
-        # update the last successful image detection and status
-        __update_last_image(bucket=data['bucket'], image=branded)
-        __update_last_classification(
-            bucket=data['bucket'], classification=classification.value)
+        # update the last successful status
+        __update_last_classification(classification=classification)
 
         # post image to twitter
         print('[INFO] Posting image to twitter!')
@@ -84,8 +83,7 @@ def classify(request) -> str:
             image=branded)
     elif classification == Label.NIGHT:
         # ensure that the status gets reset at night
-        __update_last_classification(
-            bucket=data['bucket'], classification=classification.value)
+        __update_last_classification(classification=classification)
 
     print(
         f'[INFO] classification={classification} confidence={confidence:.2f}%')
@@ -125,36 +123,21 @@ def __load_twitter_keys(*, bucket: str) -> twitter.ApiKeys:
     )
 
 
-def __get_last_classification(*, bucket: str) -> Optional[str]:
-    client = storage.Client()
-    bucket = client.get_bucket(bucket)
-    blob = bucket.get_blob(LAST_CLASSIFICATION_STATE_FILE)
-    if not blob:
-        return None
-    else:
-        return blob.download_as_string().decode('utf-8').strip()
+def __get_last_classification() -> Label:
+    service = build('sheets', 'v4')
+    sheet = service.spreadsheets()
+    result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range='A1').execute()
+    values = result.get('values', [])
+    return Label(values[0][0])
 
 
-def __update_last_classification(*, bucket: str, classification: str) -> None:
-    client = storage.Client()
-    bucket = client.get_bucket(bucket)
-    blob = bucket.get_blob(LAST_CLASSIFICATION_STATE_FILE)
-    if blob is None:
-        blob = storage.blob.Blob(LAST_CLASSIFICATION_STATE_FILE, bucket)
-    print(f'[INFO] Updating classification to {classification}')
-    blob.upload_from_string(classification)
-
-
-def __update_last_image(*, bucket: str, image: Image) -> None:
-    client = storage.Client()
-    bucket = client.get_bucket(bucket)
-    blob = bucket.get_blob(LAST_IMAGE_STATE_FILE)
-    if blob is None:
-        blob = storage.blob.Blob(LAST_IMAGE_STATE_FILE, bucket)
-
-    with io.BytesIO() as output:
-        image.save(output, format="PNG")
-        blob.upload_from_string(output.getvalue())
+def __update_last_classification(*, classification: Label) -> None:
+    print(f'[INFO] Updating classification={classification.value}')
+    service = build('sheets', 'v4')
+    values = service.spreadsheets().values()
+    values.update(spreadsheetId=SPREADSHEET_ID, range='A1', valueInputOption='RAW', body={
+        'values': [[classification.value]]
+    }).execute()
 
 
 if __name__ == '__main__':
