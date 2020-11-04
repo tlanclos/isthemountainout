@@ -55,8 +55,9 @@ def classify(request) -> str:
     classification, confidence = classifier.classify(preprocess(image))
     classification = Label(classification)
 
+    # detect fault classificiations between day and night
     now = datetime.now(timezone.utc)
-    if classification == Label.NIGHT and not __is_night(now):
+    if (classification == Label.NIGHT and not __is_night(now)) or (classification != Label.NIGHT and __is_night(now)):
         nowstr = now.strftime('%B %d %Y %H:%M:%S %Z')
         print(
             f'[WARN] Faulty classification detected [{classification}] @ [{nowstr}]')
@@ -80,7 +81,7 @@ def classify(request) -> str:
             keys=__load_twitter_keys(bucket=data['bucket']),
             tweet_status=twitter.message_for(classification),
             image=branded)
-    elif classification == Label.NIGHT:
+    elif classification == Label.NIGHT and last_classification != Label.NIGHT:
         # ensure that the status gets reset at night
         __update_last_classification(classification=classification)
 
