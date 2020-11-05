@@ -1,8 +1,16 @@
 import common.model as m
 import tensorflow as tf
+from enum import Enum
+from typing import List
+
+class Label(Enum):
+    NIGHT = 'Night'
+    NOT_VISIBLE = 'NotVisible'
+    MYSTICAL = 'Mystical'
+    BEAUTIFUL = 'Beautiful'
 
 
-def generate(classes: int) -> tf.keras.Model:
+def generate() -> tf.keras.Model:
     shape = (224, 224, 3)
     inputs = tf.keras.Input(shape=shape)
     outputs = m.chained(
@@ -45,9 +53,13 @@ def generate(classes: int) -> tf.keras.Model:
             ),
         ]),
         tf.keras.layers.Dropout(0.3),
-        tf.keras.layers.Dense(classes),
+        tf.keras.layers.Dense(len(labels())),
         tf.keras.layers.Activation('softmax'))
     model = tf.keras.Model(inputs=inputs, outputs=outputs)
     model.build(input_shape=(None, *shape))
     model.load_weights('isthemountainout.h5')
     return model
+
+
+def labels() -> List[Label]:
+    return sorted(Label.__members__.values(), key=lambda label: label.value)

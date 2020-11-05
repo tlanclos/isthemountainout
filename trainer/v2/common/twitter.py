@@ -1,5 +1,6 @@
 import tweepy
 from PIL import Image
+from common.frozenmodel import Label
 
 
 TEMP_TWITTER_IMAGE_POST = '/tmp/image-to-tweet.png'
@@ -27,10 +28,10 @@ def tweet(*, keys: ApiKeys, tweet_status: str, image: Image):
     api.update_with_media(TEMP_TWITTER_IMAGE_POST, tweet_status)
 
 
-def message_for(classification: str) -> str:
-    if classification == 'Beautiful':
+def message_for(classification: Label) -> str:
+    if classification == Label.BEAUTIFUL:
         return "It's beautiful <3"
-    elif classification == 'Mystical':
+    elif classification == Label.MYSTICAL:
         return "It's out!"
     else:
         return "It's hiding :("
