@@ -113,7 +113,7 @@ def __load_twitter_keys(*, bucket: str) -> twitter.ApiKeys:
     )
 
 
-def __load_weights(*, bucket: str, filepath: str = 'isthemountainout.h5') -> str:
+def __load_weights(*, bucket: str, filepath: str = '/tmp/isthemountainout.h5') -> str:
     if os.path.exists(filepath):
         print(f'{filepath} already existed, returning early')
         return filepath
