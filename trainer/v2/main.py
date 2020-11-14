@@ -124,6 +124,7 @@ def __load_weights(*, bucket: str, filepath: str = '/tmp/isthemountainout.h5') -
         blob = bucket.get_blob('isthemountainout.h5')
         with open(filepath, 'wb') as f:
             blob.download_to_file(f)
+        return filepath
 
 
 def __get_last_classification() -> Label:
