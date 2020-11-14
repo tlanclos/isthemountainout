@@ -1,5 +1,6 @@
 import json
 import os
+import hashlib
 
 import tensorflow as tf
 
@@ -13,7 +14,7 @@ from googleapiclient.discovery import build
 from datetime import datetime, timezone
 from google.cloud import storage
 from PIL import Image
-from typing import List
+from typing import List, Optional
 
 LAST_CLASSIFICATION_STATE_FILE = 'is-the-mountain-out-state.txt'
 LAST_IMAGE_STATE_FILE = 'is-the-mountain-out-image.png'
@@ -36,10 +37,14 @@ notable_transitions = {
 
 
 def classify(request) -> str:
+    # extract the request data
+    data = request.get_json(force=True)
+
     # initialize labels, model, and classifier
     __setup_gpu()
     labels = frozenmodel.labels()
-    classifier = Classifier(model=frozenmodel.generate(), labels=labels)
+    weights_filepath = __load_weights(bucket=data['bucket'])
+    classifier = Classifier(model=frozenmodel.generate(weights_filepath=weights_filepath), labels=labels)
 
     # download the image, preprocess it, and get its classification/confidence
     image = downloader.download_image(
@@ -55,7 +60,6 @@ def classify(request) -> str:
         return f'{classification} {confidence:.2f}%'
 
     # deterimine if there is a change in states
-    data = request.get_json(force=True)
     last_classification = __get_last_classification()
     print(f'[INFO] Last classification was {last_classification.value}')
 
@@ -107,6 +111,19 @@ def __load_twitter_keys(*, bucket: str) -> twitter.ApiKeys:
         access_token=keys['access_token'],
         access_token_secret=keys['access_token_secret'],
     )
+
+
+def __load_weights(*, bucket: str, filepath: str = 'isthemountainout.h5') -> str:
+    if os.path.exists(filepath):
+        print(f'{filepath} already existed, returning early')
+        return filepath
+    else:
+        print(f'{filepath} does not exist, downloading weights')
+        client = storage.Client()
+        bucket = client.get_bucket(bucket)
+        blob = bucket.get_blob('isthemountainout.h5')
+        with open(filepath, 'wb') as f:
+            blob.download_to_file(f)
 
 
 def __get_last_classification() -> Label:

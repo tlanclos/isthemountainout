@@ -1,7 +1,7 @@
 import common.model as m
 import tensorflow as tf
 from enum import Enum
-from typing import List
+from typing import List, Optional
 
 class Label(Enum):
     NIGHT = 'Night'
@@ -10,7 +10,7 @@ class Label(Enum):
     BEAUTIFUL = 'Beautiful'
 
 
-def generate() -> tf.keras.Model:
+def generate(*, weights_filepath: Optional[str] = None) -> tf.keras.Model:
     shape = (224, 224, 3)
     inputs = tf.keras.Input(shape=shape)
     outputs = m.chained(
@@ -80,7 +80,7 @@ def generate() -> tf.keras.Model:
     )(inputs)
     model = tf.keras.Model(inputs=inputs, outputs=outputs)
     model.build(input_shape=(None, *shape))
-    model.load_weights('isthemountainout.h5')
+    model.load_weights(weights_filepath if weights_filepath else 'isthemountainout.h5')
     return model
 
 
