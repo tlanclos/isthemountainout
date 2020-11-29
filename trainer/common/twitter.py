@@ -1,6 +1,7 @@
 import tweepy
 from PIL import Image
 from common.frozenmodel import Label
+from typing import List
 
 
 TEMP_TWITTER_IMAGE_POST = '/tmp/image-to-tweet.png'
@@ -19,13 +20,14 @@ class ApiKeys:
         self.access_token_secret = access_token_secret
 
 
-def tweet(*, keys: ApiKeys, tweet_status: str, image: Image):
+def tweet(*, keys: ApiKeys, tweet_status: str, image: Image, tags: List[str]):
     auth = tweepy.OAuthHandler(keys.consumer_key, keys.consumer_secret_key)
     auth.set_access_token(keys.access_token, keys.access_token_secret)
     api = tweepy.API(auth)
 
+    hashtags = ' '.join([f'#{tag}' for tag in tags])
     image.save(TEMP_TWITTER_IMAGE_POST)
-    api.update_with_media(TEMP_TWITTER_IMAGE_POST, tweet_status)
+    api.update_with_media(TEMP_TWITTER_IMAGE_POST, '\n'.join([tweet_status, hashtags]))
 
 
 def message_for(classification: Label) -> str:
@@ -35,3 +37,10 @@ def message_for(classification: Label) -> str:
         return "It's out!"
     else:
         return "It's hiding :("
+
+
+def tags(classification: Label) -> List[str]:
+    if classification == Label.BEAUTIFUL:
+        return ['MountRainier', 'SpaceNeedle', 'Seattle']
+    else:
+        return []

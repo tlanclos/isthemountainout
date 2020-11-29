@@ -75,6 +75,7 @@ def classify(request) -> str:
         twitter.tweet(
             keys=__load_twitter_keys(bucket=data['bucket']),
             tweet_status=twitter.message_for(classification),
+            tags=twitter.tags(classification),
             image=branded)
     elif classification == Label.NIGHT and last_classification != Label.NIGHT:
         # ensure that the status gets reset at night
