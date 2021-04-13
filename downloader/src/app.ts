@@ -1,4 +1,4 @@
-import request from "request";
+import axios from 'axios';
 import fs from "fs";
 import cron from "node-cron";
 import express from "express";
@@ -24,7 +24,7 @@ app.post("/download-prior", async (request, response) => {
     for (
       let datetime = date.clone();
       datetime < date.clone().add(19, "hours");
-      datetime = datetime.add(10, "minutes")
+      datetime = datetime.add(60, "minutes")
     ) {
       await downloadOnePrior(datetime, { outputDir: "TrainingDataPrior" });
     }
@@ -43,28 +43,25 @@ async function downloadOnePrior(
   )}/${datetime.format("HHmm")}.jpg`;
   const filename = `MountRainier_${datetime.format("YYYY-MM-DDTHHmmss")}.jpg`;
 
-  return fs.promises.mkdir(options.outputDir, { recursive: true }).then(() => {
-    const fullFilename = path.join(options.outputDir, filename);
-    // check if file exists and if it does not, then download it
-    return fs.promises.access(fullFilename, fs.constants.F_OK).catch(() => {
-      return new Promise<request.Request | undefined>((resolve) => {
-        const req = request(uri, (_unusedErr, response, _unusedBody) => {
-          if (response.statusCode === 200) {
-            resolve(req);
-          } else {
-            resolve(undefined);
-          }
-        });
-      }).then((req) => {
-        if (req) {
-          req?.pipe(fs.createWriteStream(fullFilename)).on("close", () => {
-            console.log(`Saved Prior ${fullFilename}`);
-          });
-        } else {
-          console.log(`Error receiving ${fullFilename}`);
-        }
+  await fs.promises.mkdir(options.outputDir, { recursive: true });
+
+  const fullFilename = path.join(options.outputDir, filename);
+  // check if file exists and if it does not, then download it
+  return fs.promises.access(fullFilename, fs.constants.F_OK).catch(async () => {
+    console.log(`Downloading ${uri} -> ${fullFilename}`);
+
+    try {
+      const response = await axios.get(uri, {responseType: 'stream'});
+      if (response.status !== 200) {
+        console.log(`Error receiving ${fullFilename}`);
+        return;
+      }
+      response.data.pipe(fs.createWriteStream(fullFilename)).on('close', () => {
+        console.log(`Saved Prior ${fullFilename}`);
       });
-    });
+    } catch (e: unknown) {
+      console.log(`Error receiving ${fullFilename}: ${e}`);
+    }
   });
 }
 
@@ -75,11 +72,14 @@ async function downloadOne(uri: string, options: Options): Promise<void> {
 
   return fs.promises.mkdir(options.outputDir, { recursive: true }).then(() => {
     return new Promise((resolve) => {
-      request(uri)
-        .pipe(fs.createWriteStream(fullFilename))
-        .on("close", () => {
-          console.log(`Saved ${fullFilename}`);
-          resolve();
+      axios.get(uri)
+        .then(response => {
+          return response.data
+            .pipe(fs.createWriteStream(fullFilename))
+            .on("close", () => {
+              console.log(`Saved ${fullFilename}`);
+              resolve();
+            });
         });
     });
   });
