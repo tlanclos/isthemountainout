@@ -48,7 +48,7 @@ def classify(request) -> str:
 
     # download the image, preprocess it, and get its classification/confidence
     image = downloader.download_image(
-        'http://backend.roundshot.com/cams/241/original')
+        'https://backend.roundshot.com/cams/241/original')
     classification, confidence = classifier.classify(preprocess(image))
 
     # detect fault classificiations between day and night

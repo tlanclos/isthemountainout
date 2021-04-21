@@ -4,12 +4,12 @@ import io
 from PIL import Image
 
 def download_image(url: str) -> Image:
-    request = requests.get(url, stream=True)
-    if request.status_code == 200:
-        request.raw.decode_content = True
+    req = requests.get(url, stream=True)
+    if req.status_code == 200:
+        req.raw.decode_content = True
         data = io.BytesIO()
-        shutil.copyfileobj(request.raw, data)
+        shutil.copyfileobj(req.raw, data)
         data.seek(0)
         return Image.open(data)
     else:
-        raise IOError('Could not download latest image')
+        raise IOError(f'Could not download latest image from {url}', req)
