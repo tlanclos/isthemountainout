@@ -4,7 +4,8 @@ import io
 from PIL import Image
 
 def download_image(url: str) -> Image:
-    req = requests.get(url, stream=True)
+    redirected_url = requests.head(url, allow_redirects=True).url
+    req = requests.get(redirected_url, stream=True)
     if req.status_code == 200:
         req.raw.decode_content = True
         data = io.BytesIO()
