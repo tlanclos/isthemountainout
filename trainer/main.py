@@ -90,7 +90,7 @@ def __is_night(date: datetime) -> bool:
     info = sun(seattle.observer, date=datetime(
         year=date.year, month=date.month, day=date.day))
     is_night = data < info['dawn'] or date > info['dusk']
-    print(f'[INFO] is_night={is_night} [now]={date} [dawn]={info['dawn']} [dusk]={info['dusk']}')
+    print(f"[INFO] is_night={is_night} [now]={date} [dawn]={info['dawn']} [dusk]={info['dusk']}")
     return is_night
 
 
