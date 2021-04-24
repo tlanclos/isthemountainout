@@ -13,4 +13,4 @@ def download_image(url: str) -> Image:
         data.seek(0)
         return Image.open(data)
     else:
-        raise IOError(f'Could not download latest image from {url}', req)
+        raise IOError(f'Could not download latest image from {url} -> {redirected_url}', req)
