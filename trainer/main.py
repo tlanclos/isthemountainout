@@ -13,6 +13,7 @@ from common.image import preprocess, brand
 from googleapiclient.discovery import build
 from datetime import datetime, timezone
 from google.cloud import storage
+from io import BytesIO
 from PIL import Image
 from typing import List, Optional
 
@@ -37,6 +38,9 @@ notable_transitions = {
 
 
 def classify(request) -> str:
+    # get now
+    now = datetime.now(timezone.utc)
+    
     # extract the request data
     data = request.get_json(force=True)
 
@@ -51,8 +55,13 @@ def classify(request) -> str:
         'https://backend.roundshot.com/cams/241/original')
     classification, confidence = classifier.classify(preprocess(image))
 
+    # save a cropped image for historical lookup/retraining
+    __store_image(
+        brand(image, brand=__load_brand()),
+        name=now.strftime(f'mtrainier-%Y%m%dT%H%M%S'),
+        bucket=data['bucket'])
+    
     # detect fault classificiations between day and night
-    now = datetime.now(timezone.utc)
     if (classification == Label.NIGHT and not __is_night(now)) or (classification != Label.NIGHT and __is_night(now)):
         nowstr = now.strftime('%B %d %Y %H:%M:%S %Z')
         print(
@@ -146,6 +155,14 @@ def __update_last_classification(*, classification: Label) -> None:
         'values': [[classification.value]]
     }).execute()
 
+def __store_image(image: Image.Image, *, name: str, bucket: str) -> None:
+    print(f'[INFO] Storing image name={name}')
+    client = storage.Client()
+    bucket = client.get_bucket(bucket)
+    blob = bucket.blob(f'mt-rainier-history/{name}.png')
+    imagefile = BytesIO()
+    image.save(imagefile, format='PNG')
+    blob.upload_from_string(imagefile.getvalue())
 
 if __name__ == '__main__':
     class TestRequest:
