@@ -77,7 +77,7 @@ def classify(request) -> str:
         branded = brand(image, brand=__load_brand())
 
         # update the last successful status
-        __update_last_classification(classification=classification)
+        __update_last_classification(classification=classification, timestamp=now)
 
         # post image to twitter
         print('[INFO] Posting image to twitter!')
@@ -88,7 +88,7 @@ def classify(request) -> str:
             image=branded)
     elif classification == Label.NIGHT and last_classification != Label.NIGHT:
         # ensure that the status gets reset at night
-        __update_last_classification(classification=classification)
+        __update_last_classification(classification=classification, timestamp=now)
 
     print(
         f'[INFO] classification={classification.value} confidence={confidence:.2f}%')
@@ -142,18 +142,36 @@ def __load_weights(*, bucket: str, filepath: str = '/tmp/isthemountainout.h5') -
 def __get_last_classification() -> Label:
     service = build('sheets', 'v4')
     sheet = service.spreadsheets()
-    result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range='A1').execute()
+    inputRange = sheet.values() \
+        .append(
+            spreadsheetId=SPREADSHEET_ID,
+            range='State!A:B',
+            valueInputOption='USER_ENTERED',
+            body={'values': [['', '']]}
+        ) \
+        .execute() \
+        .get('updates', {}) \
+        .get('updatedRange', '')
+    result = sheet.values() \
+        .get(spreadsheetId=SPREADSHEET_ID, range=__previous_row(inputRange)) \
+        .execute()
     values = result.get('values', [])
-    return Label(values[0][0])
+    return Label(values[0][1])
 
 
-def __update_last_classification(*, classification: Label) -> None:
+def __update_last_classification(*, classification: Label, timestamp: datetime) -> None:
     print(f'[INFO] Updating classification={classification.value}')
     service = build('sheets', 'v4')
-    values = service.spreadsheets().values()
-    values.update(spreadsheetId=SPREADSHEET_ID, range='A1', valueInputOption='RAW', body={
-        'values': [[classification.value]]
-    }).execute()
+    service.spreadsheets().values() \
+        .append(
+            spreadsheetId=SPREADSHEET_ID,
+            range='State!A:B',
+            valueInputOption='USER_ENTERED',
+            insertDataOption='INSERT_ROWS',
+            body={
+                'values': [[timestamp.strftime('%m/%d/%Y %H:%M:%S'), classification.value]],
+            },
+        ).execute()
 
 def __store_image(image: Image.Image, *, name: str, bucket: str) -> None:
     print(f'[INFO] Storing image name={name}')
@@ -164,6 +182,14 @@ def __store_image(image: Image.Image, *, name: str, bucket: str) -> None:
     image.save(imagefile, format='PNG')
     blob.upload_from_string(imagefile.getvalue())
 
+def __previous_row(inputRange: str) -> str:
+    sheetName, sheetSeparator, dataRange = inputRange.partition('!')
+    cells = dataRange.split(':')
+    return f'{sheetName}{sheetSeparator}{":".join([__decrement_row(cell) for cell in cells])}'
+
+def __decrement_row(cell: str) -> str:
+    return f'{cell[0]}{int(cell[1:]) - 1}'
+    
 if __name__ == '__main__':
     class TestRequest:
         def get_json(self, **kwargs):
