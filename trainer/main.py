@@ -10,7 +10,7 @@ from common import twitter, downloader, frozenmodel
 from common.classifier import Classifier
 from common.frozenmodel import Label
 from common.image import preprocess, brand
-from common.sheets import RangeData
+from common.sheets import RangeData, ClassificationRow
 from googleapiclient.discovery import build
 from datetime import datetime, timezone
 from google.cloud import storage
@@ -76,16 +76,16 @@ def classify(request) -> str:
         return f'{classification} {confidence:.2f}%'
 
     print(f'[INFO] Last classification was {last_classification.value}')
-    if classification in notable_transitions[last_classification]:
+    if classification in notable_transitions[last_classification] and __has_classification_settled(classification):
         # calculate the branded image
         branded = brand(image, brand=__load_brand())
 
         # update the last successful status
-        __update_last_classification(
+        __update_last_classification(ClassificationRow(
             classification=classification,
-            timestamp=now,
-            posted=True,
-        )
+            date=now,
+            was_posted=True,
+        ))
 
         # post image to twitter
         print('[INFO] Posting image to twitter!')
@@ -96,11 +96,11 @@ def classify(request) -> str:
             image=branded)
     elif classification == Label.NIGHT and last_classification != Label.NIGHT:
         # ensure that the status gets reset at night
-        __update_last_classification(
+        __update_last_classification(ClassificationRow(
             classification=classification,
-            timestamp=now,
-            posted=False,
-        )
+            date=now,
+            was_posted=False,
+        ))
 
     print(
         f'[INFO] classification={classification.value} confidence={confidence:.2f}%')
@@ -153,10 +153,45 @@ def __load_weights(*, bucket: str, filepath: str = '/tmp/isthemountainout.h5') -
         return filepath
 
 
+def __has_classification_settled(classification: Label) -> bool:
+    prev_classifications = __get_prev_classifications(count=2)
+    print(f'[INFO] Checking for settled classification={classification.value} in: {",".join([c.classification.value for c in prev_classifications])}')
+    return all(c.classification == classification for c in prev_classifications)
+
+
 def __get_last_classification() -> Optional[Label]:
+    # Search back 100 (around 2 days) rows to see when the last posted 
+    # classification was and take that as the last classification.
+    for row in reversed(__get_prev_classifications(count=100)):
+        if row.was_posted:
+            return row.classification
+    return None
+
+
+def __get_prev_classifications(*, count: int) -> List[ClassificationRow]:
+    lastRowRange = __get_latest_classification_range()
     service = build('sheets', 'v4')
-    sheet = service.spreadsheets()
-    lastRowRange = sheet.values() \
+    result = service.spreadsheets().values() \
+        .get(
+            spreadsheetId=SPREADSHEET_ID,
+            range=str(RangeData.of(
+                sheetName=lastRowRange.sheetName,
+                start=lastRowRange.startCell.minusRows(count, min_row=2),
+                end=lastRowRange.endCell,
+            )),
+        ).execute()
+    return [
+        ClassificationRow(
+            date=datetime.fromisoformat(value[0]),
+            classification=Label(value[1]),
+            was_posted=True if value[2] else False,
+        ) for value in result.get('values', [])
+    ]
+
+
+def __get_latest_classification_range() -> RangeData:
+    service = build('sheets', 'v4')
+    return RangeData(service.spreadsheets().values() \
         .append(
             spreadsheetId=SPREADSHEET_ID,
             range='State!A2:C',
@@ -165,25 +200,10 @@ def __get_last_classification() -> Optional[Label]:
         ) \
         .execute() \
         .get('updates', {}) \
-        .get('updatedRange', '')
-    result = sheet.values() \
-        .get(
-            spreadsheetId=SPREADSHEET_ID,
-            range=str(RangeData.of(
-                sheetName=RangeData(lastRowRange).sheetName,
-                start=RangeData(lastRowRange).startCell.minusRows(100, min_row=2),
-                end=RangeData(lastRowRange).endCell,
-            )),
-        ).execute()
-    values = result.get('values', [])
-    for value in reversed(values):
-        # value[2] is the "WasPosted" column
-        if value[2] == 'TRUE':
-            return Label(value[1])
-    return None
+        .get('updatedRange', ''))
 
 
-def __update_last_classification(*, classification: Label, timestamp: datetime, posted: bool) -> None:
+def __update_last_classification(classification: ClassificationRow) -> None:
     print(f'[INFO] Updating classification={classification.value}')
     service = build('sheets', 'v4')
     service.spreadsheets().values() \
@@ -192,13 +212,7 @@ def __update_last_classification(*, classification: Label, timestamp: datetime, 
             range='State!A2:C',
             valueInputOption='USER_ENTERED',
             insertDataOption='INSERT_ROWS',
-            body={
-                'values': [[
-                    timestamp.strftime('%m/%d/%Y %H:%M:%S'),
-                    classification.value,
-                    'TRUE' if posted else 'FALSE',
-                ]],
-            },
+            body={'values': [classification.asList()]},
         ).execute()
 
 def __store_image(image: Image.Image, *, name: str, bucket: str) -> None:

@@ -1,3 +1,7 @@
+from common.frozenmodel import Label
+from datetime import datetime
+from typing import List
+
 class Cell:
     column: str
     row: int
@@ -30,3 +34,21 @@ class RangeData:
     @classmethod
     def of(cls, *, sheetName: str, start: Cell, end: Cell) -> 'RangeData':
         return RangeData(f'{sheetName}!{str(start)}:{str(end)}')
+
+
+class ClassificationRow:
+    date: datetime
+    classification: Label
+    was_posted: bool
+
+    def __init__(self, *, date: datetime, classification: Label, was_posted: bool):
+        self.date = date
+        self.classification = classification
+        self.was_posted = was_posted
+    
+    def asList(self) -> List[str]:
+        return [
+            self.datetime.strftime('%Y-%m-%dT%H:%M:%S%z'),
+            self.classification.value,
+            'TRUE' if self.was_posted else 'FALSE',
+        ]
