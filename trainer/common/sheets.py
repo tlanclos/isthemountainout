@@ -52,3 +52,6 @@ class ClassificationRow:
             self.classification.value,
             'TRUE' if self.was_posted else 'FALSE',
         ]
+    
+    def __str__(self) -> str:
+        return f'{self.__class__.__name__}(date={self.date.isoformat()} classification={self.classification.value} was_posted={self.was_posted})'

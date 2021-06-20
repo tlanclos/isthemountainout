@@ -185,7 +185,7 @@ def __get_prev_classifications(*, count: int) -> List[ClassificationRow]:
         ClassificationRow(
             date=datetime.fromisoformat(value[0]),
             classification=Label(value[1]),
-            was_posted=True if value[2] else False,
+            was_posted=True if value[2] == 'TRUE' else False,
         ) for value in result.get('values', [])
     ]
 
