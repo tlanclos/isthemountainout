@@ -164,7 +164,7 @@ def __get_last_classification() -> Optional[Label]:
     # Search back 100 (around 2 days) rows to see when the last posted 
     # classification was and take that as the last classification.
     for row in reversed(__get_prev_classifications(count=100)):
-        if row.was_posted:
+        if row.was_posted or row.classification == Label.NIGHT:
             return row.classification
     return None
 
