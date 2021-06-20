@@ -48,7 +48,7 @@ class ClassificationRow:
     
     def asList(self) -> List[str]:
         return [
-            self.datetime.strftime('%Y-%m-%dT%H:%M:%S%z'),
+            self.date.isoformat(),
             self.classification.value,
             'TRUE' if self.was_posted else 'FALSE',
         ]

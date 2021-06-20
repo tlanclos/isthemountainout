@@ -1,6 +1,7 @@
 import json
 import os
 import hashlib
+import pytz
 
 import tensorflow as tf
 
@@ -80,7 +81,7 @@ def classify(request) -> str:
         # calculate the branded image
         branded = brand(image, brand=__load_brand())
 
-        # update the last successful status
+        # update the last successfully posted classification
         __update_last_classification(ClassificationRow(
             classification=classification,
             date=now,
@@ -94,8 +95,8 @@ def classify(request) -> str:
             tweet_status=twitter.message_for(classification),
             tags=twitter.tags(classification),
             image=branded)
-    elif classification == Label.NIGHT and last_classification != Label.NIGHT:
-        # ensure that the status gets reset at night
+    else:
+        # always update the last non-faulty status
         __update_last_classification(ClassificationRow(
             classification=classification,
             date=now,
@@ -107,9 +108,8 @@ def classify(request) -> str:
     return f'{classification.value} {confidence:.2f}%'
 
 
-def __is_night(date: datetime) -> bool:
-    # TODO(tlanclos): This needs to be fixed. For context, see classification info sample below. This was rendered on 6/19/2021 @ 5:21 PM PT
-    # [INFO] is_night=True [now]=2021-06-20 00:21:38.702407+00:00 [dawn]=2021-06-20 11:30:10.746244+00:00 [dusk]=2021-06-21 04:52:03.242519+00:00
+def __is_night(timestamp: datetime) -> bool:
+    date = timestamp.astimezone(pytz.timezone('US/Pacific'))
     info = sun(seattle.observer, date=datetime(
         year=date.year, month=date.month, day=date.day))
     is_night = date < info['dawn'] or date > info['dusk']
@@ -204,7 +204,7 @@ def __get_latest_classification_range() -> RangeData:
 
 
 def __update_last_classification(classification: ClassificationRow) -> None:
-    print(f'[INFO] Updating classification={classification.value}')
+    print(f'[INFO] Updating classification={classification.classification.value}')
     service = build('sheets', 'v4')
     service.spreadsheets().values() \
         .append(
