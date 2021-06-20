@@ -22,6 +22,7 @@ from typing import List, Optional
 LAST_CLASSIFICATION_STATE_FILE = 'is-the-mountain-out-state.txt'
 LAST_IMAGE_STATE_FILE = 'is-the-mountain-out-image.png'
 SPREADSHEET_ID = '1nMkjiqMvsOhj-ljEab2aBvNWy3bJXdot3u2vRXsyI5Q'
+PACIFIC_TIMEZONE = pytz.timezone('US/Pacific')
 
 
 seattle = LocationInfo(
@@ -41,7 +42,7 @@ notable_transitions = {
 
 def classify(request) -> str:
     # get now
-    now = datetime.now(timezone.utc)
+    now = datetime.now(PACIFIC_TIMEZONE)
     
     # extract the request data
     data = request.get_json(force=True)
@@ -109,7 +110,7 @@ def classify(request) -> str:
 
 
 def __is_night(timestamp: datetime) -> bool:
-    date = timestamp.astimezone(pytz.timezone('US/Pacific'))
+    date = timestamp.astimezone(PACIFIC_TIMEZONE)
     info = sun(seattle.observer, date=datetime(
         year=date.year, month=date.month, day=date.day))
     is_night = date < info['dawn'] or date > info['dusk']
