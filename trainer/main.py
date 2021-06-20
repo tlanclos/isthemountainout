@@ -61,7 +61,7 @@ def classify(request) -> str:
         name=now.strftime(f'mtrainier-%Y%m%dT%H%M%S'),
         bucket=data['bucket'])
     
-    # detect fault classificiations between day and night
+    # detect fault classifications between day and night
     if (classification == Label.NIGHT and not __is_night(now)) or (classification != Label.NIGHT and __is_night(now)):
         nowstr = now.strftime('%B %d %Y %H:%M:%S %Z')
         print(
@@ -71,13 +71,16 @@ def classify(request) -> str:
     # deterimine if there is a change in states
     last_classification = __get_last_classification()
     print(f'[INFO] Last classification was {last_classification.value}')
-
     if classification in notable_transitions[last_classification]:
         # calculate the branded image
         branded = brand(image, brand=__load_brand())
 
         # update the last successful status
-        __update_last_classification(classification=classification, timestamp=now)
+        __update_last_classification(
+            classification=classification,
+            timestamp=now,
+            posted=True,
+        )
 
         # post image to twitter
         print('[INFO] Posting image to twitter!')
@@ -88,7 +91,11 @@ def classify(request) -> str:
             image=branded)
     elif classification == Label.NIGHT and last_classification != Label.NIGHT:
         # ensure that the status gets reset at night
-        __update_last_classification(classification=classification, timestamp=now)
+        __update_last_classification(
+            classification=classification,
+            timestamp=now,
+            posted=False,
+        )
 
     print(
         f'[INFO] classification={classification.value} confidence={confidence:.2f}%')
@@ -145,7 +152,7 @@ def __get_last_classification() -> Label:
     inputRange = sheet.values() \
         .append(
             spreadsheetId=SPREADSHEET_ID,
-            range='State!A:B',
+            range='State!A2:C',
             valueInputOption='USER_ENTERED',
             body={'values': [['', '']]}
         ) \
@@ -159,17 +166,21 @@ def __get_last_classification() -> Label:
     return Label(values[0][1])
 
 
-def __update_last_classification(*, classification: Label, timestamp: datetime) -> None:
+def __update_last_classification(*, classification: Label, timestamp: datetime, posted: bool) -> None:
     print(f'[INFO] Updating classification={classification.value}')
     service = build('sheets', 'v4')
     service.spreadsheets().values() \
         .append(
             spreadsheetId=SPREADSHEET_ID,
-            range='State!A:B',
+            range='State!A2:C',
             valueInputOption='USER_ENTERED',
             insertDataOption='INSERT_ROWS',
             body={
-                'values': [[timestamp.strftime('%m/%d/%Y %H:%M:%S'), classification.value]],
+                'values': [[
+                    timestamp.strftime('%m/%d/%Y %H:%M:%S'),
+                    classification.value,
+                    'TRUE' if posted else 'FALSE',
+                ]],
             },
         ).execute()
 
