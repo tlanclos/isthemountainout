@@ -10,6 +10,7 @@ from common import twitter, downloader, frozenmodel
 from common.classifier import Classifier
 from common.frozenmodel import Label
 from common.image import preprocess, brand
+from common.sheets import RangeData
 from googleapiclient.discovery import build
 from datetime import datetime, timezone
 from google.cloud import storage
@@ -70,6 +71,10 @@ def classify(request) -> str:
 
     # deterimine if there is a change in states
     last_classification = __get_last_classification()
+    if last_classification is None:
+        print(f'[WARN] Cannot determine the last classification, to fix please mark some image as posted')
+        return f'{classification} {confidence:.2f}%'
+
     print(f'[INFO] Last classification was {last_classification.value}')
     if classification in notable_transitions[last_classification]:
         # calculate the branded image
@@ -103,6 +108,8 @@ def classify(request) -> str:
 
 
 def __is_night(date: datetime) -> bool:
+    # TODO(tlanclos): This needs to be fixed. For context, see classification info sample below. This was rendered on 6/19/2021 @ 5:21 PM PT
+    # [INFO] is_night=True [now]=2021-06-20 00:21:38.702407+00:00 [dawn]=2021-06-20 11:30:10.746244+00:00 [dusk]=2021-06-21 04:52:03.242519+00:00
     info = sun(seattle.observer, date=datetime(
         year=date.year, month=date.month, day=date.day))
     is_night = date < info['dawn'] or date > info['dusk']
@@ -146,24 +153,34 @@ def __load_weights(*, bucket: str, filepath: str = '/tmp/isthemountainout.h5') -
         return filepath
 
 
-def __get_last_classification() -> Label:
+def __get_last_classification() -> Optional[Label]:
     service = build('sheets', 'v4')
     sheet = service.spreadsheets()
-    inputRange = sheet.values() \
+    lastRowRange = sheet.values() \
         .append(
             spreadsheetId=SPREADSHEET_ID,
             range='State!A2:C',
             valueInputOption='USER_ENTERED',
-            body={'values': [['', '']]}
+            body={'values': [['', '', '']]}
         ) \
         .execute() \
         .get('updates', {}) \
         .get('updatedRange', '')
     result = sheet.values() \
-        .get(spreadsheetId=SPREADSHEET_ID, range=__previous_row(inputRange)) \
-        .execute()
+        .get(
+            spreadsheetId=SPREADSHEET_ID,
+            range=str(RangeData.of(
+                sheetName=RangeData(lastRowRange).sheetName,
+                start=RangeData(lastRowRange).startCell.minusRows(100, min_row=2),
+                end=RangeData(lastRowRange).endCell,
+            )),
+        ).execute()
     values = result.get('values', [])
-    return Label(values[0][1])
+    for value in reversed(values):
+        # value[2] is the "WasPosted" column
+        if value[2] == 'TRUE':
+            return Label(value[1])
+    return None
 
 
 def __update_last_classification(*, classification: Label, timestamp: datetime, posted: bool) -> None:
@@ -193,14 +210,6 @@ def __store_image(image: Image.Image, *, name: str, bucket: str) -> None:
     image.save(imagefile, format='PNG')
     blob.upload_from_string(imagefile.getvalue())
 
-def __previous_row(inputRange: str) -> str:
-    sheetName, sheetSeparator, dataRange = inputRange.partition('!')
-    cells = dataRange.split(':')
-    return f'{sheetName}{sheetSeparator}{":".join([__decrement_row(cell) for cell in cells])}'
-
-def __decrement_row(cell: str) -> str:
-    return f'{cell[0]}{int(cell[1:]) - 1}'
-    
 if __name__ == '__main__':
     class TestRequest:
         def get_json(self, **kwargs):
