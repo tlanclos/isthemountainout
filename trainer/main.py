@@ -166,7 +166,9 @@ def __get_last_classification() -> Optional[Label]:
     for row in reversed(__get_prev_classifications(count=100)):
         if row.was_posted or row.classification == Label.NIGHT:
             return row.classification
-    return None
+    # If there has been no posts or night found, just assume that there was
+    # night at some point
+    return Label.NIGHT
 
 
 def __get_prev_classifications(*, count: int) -> List[ClassificationRow]:
