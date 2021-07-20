@@ -1,4 +1,4 @@
-logs/*
+*logs/*
 
 # only keep the chosen model
 *.h5
