@@ -1,6 +1,5 @@
 import json
 import os
-import hashlib
 import pytz
 
 import tensorflow as tf
@@ -13,7 +12,7 @@ from common.frozenmodel import Label
 from common.image import preprocess, brand
 from common.sheets import RangeData, ClassificationRow
 from googleapiclient.discovery import build
-from datetime import datetime, timezone
+from datetime import datetime, timedelta
 from google.cloud import storage
 from io import BytesIO
 from PIL import Image
@@ -73,9 +72,6 @@ def classify(request) -> str:
 
     # deterimine if there is a change in states
     last_classification = __get_last_classification()
-    if last_classification is None:
-        print(f'[WARN] Cannot determine the last classification, to fix please mark some image as posted')
-        return f'{classification} {confidence:.2f}%'
 
     print(f'[INFO] Last classification was {last_classification.value}')
     if classification in notable_transitions[last_classification] and __has_classification_settled(classification):
@@ -160,12 +156,16 @@ def __has_classification_settled(classification: Label) -> bool:
     return all(c.classification == classification for c in prev_classifications)
 
 
-def __get_last_classification() -> Optional[Label]:
+def __get_last_classification() -> Label:
     # Search back 100 (around 2 days) rows to see when the last posted 
     # classification was and take that as the last classification.
+    yesterday = datetime.now(PACIFIC_TIMEZONE).date() - timedelta(days=1)
     for row in reversed(__get_prev_classifications(count=100)):
         if row.was_posted or row.classification == Label.NIGHT:
             return row.classification
+        elif row.date.date() == yesterday:
+            print(f'[INFO] Post not found since yesterday, assuming {Label.NIGHT}')
+            return Label.NIGHT
     # If there has been no posts or night found, just assume that there was
     # night at some point
     return Label.NIGHT
