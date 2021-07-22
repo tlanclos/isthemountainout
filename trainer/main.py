@@ -53,8 +53,15 @@ def classify(request) -> str:
     classifier = Classifier(model=frozenmodel.generate(weights_filepath=weights_filepath), labels=labels)
 
     # download the image, preprocess it, and get its classification/confidence
-    image = downloader.download_image(
+    image, image_date = downloader.download_image(
         'https://backend.roundshot.com/cams/241/original')
+    if now.date() != image_date:
+        nowstr = now.strftime('%B %d %Y %H:%M:%S %Z')
+        image_datestr = image_date.strftime('%B %d %Y')
+        print(
+            f'[WARN] Image is not the latest [Unknown] @ [{nowstr}] : image-date @ [{image_datestr}]')
+        return f'Unknown 100%'
+
     classification, confidence = classifier.classify(preprocess(image))
 
     # save a cropped image for historical lookup/retraining
