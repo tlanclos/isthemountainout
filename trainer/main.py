@@ -56,7 +56,7 @@ def classify(request) -> str:
     image, image_date = downloader.download_image(
         'https://backend.roundshot.com/cams/241/original')
     if now.date() != image_date:
-        nowstr = now.strftime('%B %d %Y %H:%M:%S %Z')
+        nowstr = now.date().strftime('%B %d %Y %H:%M:%S %Z')
         image_datestr = image_date.strftime('%B %d %Y')
         print(
             f'[WARN] Image is not the latest [Unknown] @ [{nowstr}] : image-date @ [{image_datestr}]')

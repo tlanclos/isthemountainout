@@ -9,7 +9,7 @@ from typing import Tuple
 def download_image(url: str) -> Tuple[Image.Image, Date]:
     redirected_url = requests.head(url, allow_redirects=True).url
     # Example format: https://storage.roundshot.com/544a1a9d451563.40343637/2021-07-02/14-40-00/2021-07-02-14-40-00_original.jpg
-    date = datetime.fromisoformat(list(filter(None, urlparse(redirected_url).path.split('/')))[1])
+    date = datetime.fromisoformat(list(filter(None, urlparse(redirected_url).path.split('/')))[1]).date()
     req = requests.get(redirected_url, stream=True)
     if req.status_code == 200:
         req.raw.decode_content = True
