@@ -16,6 +16,10 @@ def download_image(url: str) -> Tuple[Image.Image, Date]:
         data = io.BytesIO()
         shutil.copyfileobj(req.raw, data)
         data.seek(0)
-        return Image.open(data), date
+        image = Image.open(data)
+        width, height = image.size
+        scale = height / 2048  # The original image size had a height of 2048, so try to keep it within those bounds keeping the aspect ratio
+        image.resize((int(width / scale), int(height / scale)))
+        return image, date
     else:
         raise IOError(f'Could not download latest image from {url} -> {redirected_url}', req)
