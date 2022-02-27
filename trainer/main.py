@@ -229,7 +229,7 @@ def __store_image(image: Image.Image, *, name: str, bucket: str) -> None:
     print(f'[INFO] Storing image name={name}')
     client = storage.Client()
     bucket = client.get_bucket(bucket)
-    blob = bucket.blob(f'mt-rainier-history/{name}.png')
+    blob = bucket.blob(f'mt-rainier-history/Unclassified/{name}.png')
     imagefile = BytesIO()
     image.save(imagefile, format='PNG')
     blob.upload_from_string(imagefile.getvalue())
