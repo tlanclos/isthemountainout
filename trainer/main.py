@@ -42,7 +42,7 @@ notable_transitions = {
 def classify(request) -> str:
     # get now
     now = datetime.now(PACIFIC_TIMEZONE)
-    
+
     # extract the request data
     data = request.get_json(force=True)
 
@@ -50,7 +50,8 @@ def classify(request) -> str:
     __setup_gpu()
     labels = frozenmodel.labels()
     weights_filepath = __load_weights(bucket=data['bucket'])
-    classifier = Classifier(model=frozenmodel.generate(weights_filepath=weights_filepath), labels=labels)
+    classifier = Classifier(model=frozenmodel.generate(
+        weights_filepath=weights_filepath), labels=labels)
 
     # download the image, preprocess it, and get its classification/confidence
     image, image_date = downloader.download_image(
@@ -69,7 +70,7 @@ def classify(request) -> str:
         brand(image, brand=__load_brand()),
         name=now.strftime(f'mtrainier-%Y%m%dT%H%M%S'),
         bucket=data['bucket'])
-    
+
     # detect fault classifications between day and night
     if (classification == Label.NIGHT and not __is_night(now)) or (classification != Label.NIGHT and __is_night(now)):
         nowstr = now.strftime('%B %d %Y %H:%M:%S %Z')
@@ -117,7 +118,8 @@ def __is_night(timestamp: datetime) -> bool:
     info = sun(seattle.observer, date=datetime(
         year=date.year, month=date.month, day=date.day))
     is_night = date < info['dawn'] or date > info['dusk']
-    print(f"[INFO] is_night={is_night} [now]={date} [dawn]={info['dawn']} [dusk]={info['dusk']}")
+    print(
+        f"[INFO] is_night={is_night} [now]={date} [dawn]={info['dawn']} [dusk]={info['dusk']}")
     return is_night
 
 
@@ -159,19 +161,21 @@ def __load_weights(*, bucket: str, filepath: str = '/tmp/isthemountainout.h5') -
 
 def __has_classification_settled(classification: Label) -> bool:
     prev_classifications = __get_prev_classifications(count=2)
-    print(f'[INFO] Checking for settled classification={classification.value} in: {",".join([c.classification.value for c in prev_classifications])}')
+    print(
+        f'[INFO] Checking for settled classification={classification.value} in: {",".join([c.classification.value for c in prev_classifications])}')
     return all(c.classification == classification for c in prev_classifications)
 
 
 def __get_last_classification() -> Label:
-    # Search back 100 (around 2 days) rows to see when the last posted 
+    # Search back 100 (around 2 days) rows to see when the last posted
     # classification was and take that as the last classification.
     yesterday = datetime.now(PACIFIC_TIMEZONE).date() - timedelta(days=1)
     for row in reversed(__get_prev_classifications(count=100)):
         if row.was_posted or row.classification == Label.NIGHT:
             return row.classification
         elif row.date.date() == yesterday:
-            print(f'[INFO] Post not found since yesterday, assuming {Label.NIGHT}')
+            print(
+                f'[INFO] Post not found since yesterday, assuming {Label.NIGHT}')
             return Label.NIGHT
     # If there has been no posts or night found, just assume that there was
     # night at some point
@@ -189,7 +193,7 @@ def __get_prev_classifications(*, count: int) -> List[ClassificationRow]:
                 start=lastRowRange.startCell.minusRows(count, min_row=2),
                 end=lastRowRange.endCell,
             )),
-        ).execute()
+    ).execute()
     return [
         ClassificationRow(
             date=datetime.fromisoformat(value[0]),
@@ -201,20 +205,21 @@ def __get_prev_classifications(*, count: int) -> List[ClassificationRow]:
 
 def __get_latest_classification_range() -> RangeData:
     service = build('sheets', 'v4')
-    return RangeData(service.spreadsheets().values() \
-        .append(
-            spreadsheetId=SPREADSHEET_ID,
-            range='State!A2:C',
-            valueInputOption='USER_ENTERED',
-            body={'values': [['', '', '']]}
-        ) \
-        .execute() \
-        .get('updates', {}) \
+    return RangeData(service.spreadsheets().values()
+                     .append(
+        spreadsheetId=SPREADSHEET_ID,
+        range='State!A2:C',
+        valueInputOption='USER_ENTERED',
+        body={'values': [['', '', '']]}
+    )
+        .execute()
+        .get('updates', {})
         .get('updatedRange', ''))
 
 
 def __update_last_classification(classification: ClassificationRow) -> None:
-    print(f'[INFO] Updating classification={classification.classification.value}')
+    print(
+        f'[INFO] Updating classification={classification.classification.value}')
     service = build('sheets', 'v4')
     service.spreadsheets().values() \
         .append(
@@ -223,7 +228,8 @@ def __update_last_classification(classification: ClassificationRow) -> None:
             valueInputOption='USER_ENTERED',
             insertDataOption='INSERT_ROWS',
             body={'values': [classification.asList()]},
-        ).execute()
+    ).execute()
+
 
 def __store_image(image: Image.Image, *, name: str, bucket: str) -> None:
     print(f'[INFO] Storing image name={name}')
@@ -233,6 +239,7 @@ def __store_image(image: Image.Image, *, name: str, bucket: str) -> None:
     imagefile = BytesIO()
     image.save(imagefile, format='PNG')
     blob.upload_from_string(imagefile.getvalue())
+
 
 if __name__ == '__main__':
     class TestRequest:

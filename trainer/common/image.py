@@ -2,7 +2,7 @@ from PIL import Image
 
 
 def preprocess(image: Image) -> Image:
-    return crop(image, x=7787, y=500, width=224, height=224)
+    return crop(image, x=7936, y=476, width=224, height=224)
 
 
 def brand(image: Image, *, brand: Image) -> Image:
