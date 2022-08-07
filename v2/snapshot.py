@@ -1,6 +1,7 @@
 from datetime import datetime, date as Date
 from common.image import SpaceNeedleImageProvider, crop
 from common.storage import GcpBucketStorage
+from common.config import mountain_history_bucket_name, mountain_history_filename_template
 import pytz
 
 PACIFIC_TIMEZONE = pytz.timezone('US/Pacific')
@@ -20,9 +21,9 @@ def main(request):
     if today() != date:
         f'Image date [{date_str}] and today {today_str} do not match, not storing image.', 412
     else:
-        storage = GcpBucketStorage(bucket_name='mountain-history')
+        storage = GcpBucketStorage(bucket_name=mountain_history_bucket_name())
         storage.save_image(image, filename=date.strftime(
-            f'MountRainier-%Y-%m-%dT%H:%M:%S%z'))
+            mountain_history_filename_template()))
         return '', 200
 
 

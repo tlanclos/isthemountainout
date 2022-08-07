@@ -1,10 +1,14 @@
+import os
 import io
 import shutil
 from datetime import date as Date
 from datetime import datetime
 from typing import Tuple
+from google.cloud import storage as gstorage
 from urllib.parse import urlparse
-
+from common.config import mountain_history_bucket_name, mountain_history_filename_template
+from common.storage import GcpBucketStorage
+from io import BytesIO
 import requests
 from PIL import Image
 
@@ -40,10 +44,24 @@ class SpaceNeedleImageProvider(ImageProvider):
                 f'Could not download latest image from {url} -> {redirected_url}', req)
 
 
-class HistoricalImageProvider(ImageProvider):
+class LatestSnapshotImageProvider(ImageProvider):
+    storage: GcpBucketStorage
+
+    def __latest_image_file(self) -> gstorage.Blob:
+        blob = next(
+            reversed(sorted(self.storage.list_files(''), key=self.__date_of_blob)))
+        return blob, self.__date_of_blob(blob)
+
+    def __date_of_blob(self, blob) -> datetime:
+        return datetime.strptime(os.path.splitext(blob.name)[0], mountain_history_filename_template())
+
+    def __init__(self):
+        self.storage = GcpBucketStorage(
+            bucket_name=mountain_history_bucket_name())
+
     def get(self) -> Tuple[Image.Image, Date]:
-        # todo: set up for training
-        pass
+        image_blob, date = self.__latest_image_file()
+        return Image.open(BytesIO(image_blob.download_as_bytes())), date
 
 
 def crop(image: Image, *, x: int, y: int, width: int, height: int) -> Image:
