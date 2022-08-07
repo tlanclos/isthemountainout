@@ -15,7 +15,7 @@ class ImageProvider:
 
 
 class SpaceNeedleImageProvider(ImageProvider):
-    def __space_needle_url() -> str:
+    def __space_needle_url(self) -> str:
         return 'https://backend.roundshot.com/cams/241/original'
 
     def get(self) -> Tuple[Image.Image, Date]:
@@ -44,3 +44,7 @@ class HistoricalImageProvider(ImageProvider):
     def get(self) -> Tuple[Image.Image, Date]:
         # todo: set up for training
         pass
+
+
+def crop(image: Image, *, x: int, y: int, width: int, height: int) -> Image:
+    return image.crop((x, y, x + width, y + height))
