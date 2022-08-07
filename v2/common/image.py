@@ -14,7 +14,7 @@ from PIL import Image
 
 
 class ImageProvider:
-    def get(self) -> Tuple[Image.Image, Date]:
+    def get(self) -> Tuple[Image.Image, datetime]:
         pass
 
 
@@ -22,12 +22,14 @@ class SpaceNeedleImageProvider(ImageProvider):
     def __space_needle_url(self) -> str:
         return 'https://backend.roundshot.com/cams/241/original'
 
-    def get(self) -> Tuple[Image.Image, Date]:
+    def get(self) -> Tuple[Image.Image, datetime]:
         url = self.__space_needle_url()
         redirected_url = requests.head(url, allow_redirects=True).url
         # Example format: https://storage.roundshot.com/544a1a9d451563.40343637/2021-07-02/14-40-00/2021-07-02-14-40-00_original.jpg
-        date = datetime.fromisoformat(
-            list(filter(None, urlparse(redirected_url).path.split('/')))[1]).date()
+        url = urlparse(redirected_url)
+        url_path = list(filter(None, url.path.split('/')))
+        date = datetime.strptime(
+            f'{url_path[1]}T{url_path[2]}', '%Y-%m-%dT%H-%M-%S')
         req = requests.get(redirected_url, stream=True)
         if req.status_code == 200:
             req.raw.decode_content = True

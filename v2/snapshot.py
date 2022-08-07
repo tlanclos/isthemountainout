@@ -18,7 +18,7 @@ def main(request):
     image = crop(image, x=7036, y=162, width=1920, height=1080)
     date_str = date.strftime('%B %d %Y')
     today_str = date.strftime('%B %d %Y')
-    if today() != date:
+    if today() != date.date():
         f'Image date [{date_str}] and today {today_str} do not match, not storing image.', 412
     else:
         storage = GcpBucketStorage(bucket_name=mountain_history_bucket_name())
