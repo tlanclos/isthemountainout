@@ -1,0 +1,7 @@
+requests==2.27.1
+google-api-core==1.25.1
+google-auth==1.33.0
+google-auth-oauthlib==0.4.6
+google-cloud-storage==1.31.0
+pytz==2021.3
+pillow==9.0.1

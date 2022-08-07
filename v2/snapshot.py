@@ -11,16 +11,20 @@ def today() -> Date:
     return now.date()
 
 
-if __name__ == '__main__':
+def main(request):
     image_provider = SpaceNeedleImageProvider()
     image, date = image_provider.get()
     image = crop(image, x=7036, y=162, width=1920, height=1080)
     date_str = date.strftime('%B %d %Y')
     today_str = date.strftime('%B %d %Y')
     if today() != date:
-        print(
-            f'[WARN] Image date [{date_str}] and today {today_str} do not match, not storing image.')
+        f'Image date [{date_str}] and today {today_str} do not match, not storing image.', 412
     else:
         storage = GcpBucketStorage(bucket_name='mountain-history')
         storage.save_image(image, filename=date.strftime(
             f'MountRainier-%Y-%m-%dT%H:%M:%S%z'))
+        return '', 200
+
+
+if __name__ == '__main__':
+    main(None)
