@@ -1,12 +1,13 @@
+import json
 import os
 import io
 import shutil
 from datetime import date as Date
 from datetime import datetime
-from typing import Tuple
+from typing import Tuple, Dict, Iterator
 from google.cloud import storage as gstorage
 from urllib.parse import urlparse
-from common.config import mountain_history_bucket_name, mountain_history_filename_template
+from common.config import mountain_history_bucket_name, mountain_history_filename_template, classification_bucket_name, classification_filename
 from common.storage import GcpBucketStorage
 from io import BytesIO
 import requests
@@ -64,6 +65,38 @@ class LatestSnapshotImageProvider(ImageProvider):
     def get(self) -> Tuple[Image.Image, Date]:
         image_blob, date = self.__latest_image_file()
         return Image.open(BytesIO(image_blob.download_as_bytes())), date
+
+
+class Classification:
+    classification: str
+    mountainPosition: Tuple[float, float]
+
+
+class DatasetImageProvider:
+    storage: GcpBucketStorage
+    image_storage: GcpBucketStorage
+    classifications: Iterator[Tuple[str, Classification]]
+
+    def __init__(self):
+        self.storage = GcpBucketStorage(
+            bucket_name=classification_bucket_name())
+        self.image_storage = GcpBucketStorage(
+            bucket_name=mountain_history_bucket_name())
+
+    def __get_all_classifications(self) -> Dict[str, Classification]:
+        return json.loads(self.storage.get(
+            classification_filename()).download_as_string())
+
+    def __iter__(self):
+        self.classifications = iter(self.__get_all_classifications().items())
+        return self
+
+    def __next__(self) -> Tuple[str, str]:
+        file_name, classification = next(self.classifications)
+        return file_name, classification['classification']
+
+    def get(self, filename) -> gstorage.Blob:
+        return self.image_storage.get(filename)
 
 
 def crop(image: Image, *, x: int, y: int, width: int, height: int) -> Image:

@@ -27,3 +27,6 @@ class GcpBucketStorage(Storage):
 
     def list_files(self, directory) -> List[storage.Blob]:
         return list(self.client.list_blobs(self.bucket_name, prefix=directory))
+
+    def get(self, filename: str) -> storage.Blob:
+        return self.bucket.blob(filename)

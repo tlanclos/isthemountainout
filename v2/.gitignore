@@ -3,3 +3,5 @@ deploy/*
 isthemountainout-*.json
 noarch
 noarch/*
+dataset
+dataset/*
