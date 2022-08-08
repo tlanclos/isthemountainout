@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { from, Observable } from 'rxjs';
-import { map, tap } from 'rxjs/operators';
+import { map } from 'rxjs/operators';
 import axios from 'axios';
 
 @Injectable()
@@ -26,6 +26,7 @@ export interface Classifications {
   [filename: string]: Classification;
 }
 
-interface Classification {
+export interface Classification {
   readonly classification: string;
+  readonly mountainPosition: [number, number];
 }

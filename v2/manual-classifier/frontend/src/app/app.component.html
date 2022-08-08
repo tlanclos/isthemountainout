@@ -17,13 +17,19 @@
       </button>
     </ng-template>
   </mat-card-header>
-  <img mat-card-image [src]="candidate.imageBase64Url">
+  <div mat-card-image class="mountain-image">
+    <img #mountainImage [src]="candidate.imageBase64Url">
+    <canvas #mountainCanvas
+        [width]="canvasSize[0]"
+        [height]="canvasSize[1]"
+        (click)="setPosition($event, mountainCanvas, mountainImage)"></canvas>
+  </div>
   <mat-card-content>
     <button mat-flat-button color="primary" (click)="navigator.previous()">Previous</button>
     <div class="classification-options">
       <button mat-stroked-button
           *ngFor="let option of classificationOptions$ | async"
-          [color]="classificationUpdates.get(candidate.fileName) === option ? 'primary' : ''"
+          [color]="classificationUpdates.get(candidate.fileName)?.classification === option ? 'primary' : ''"
           (click)="classify(candidate.fileName, option)">
         {{ option }}
       </button>
