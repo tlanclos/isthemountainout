@@ -22,6 +22,7 @@ export class MountainController {
     timeStyle: 'short',
     timeZone: 'America/Los_Angeles',
   });
+  private readonly imageCache = new Map<string, string>();
 
   @Get('history')
   getMountainHistory(): Promise<string> {
@@ -29,16 +30,21 @@ export class MountainController {
     return bucket
       .getFiles()
       .then((response) =>
-        response[0].map((file): MountainFile => {
-          return {
-            name: file.name,
-            datetime: this.formatter.format(
-              new Date(
-                file.name.replace('MountRainier-', '').replace('.png', ''),
+        response[0]
+          .map((file): MountainFile => {
+            return {
+              name: file.name,
+              datetime: this.formatter.format(
+                new Date(
+                  file.name.replace('MountRainier-', '').replace('.png', ''),
+                ),
               ),
-            ),
-          };
-        }),
+            };
+          })
+          .sort(
+            (a, b) =>
+              new Date(a.datetime).getTime() - new Date(b.datetime).getTime(),
+          ),
       )
       .then((mountainFiles): MountainHistoryResponse => ({ mountainFiles }))
       .then((response) => JSON.stringify(response));
@@ -49,6 +55,16 @@ export class MountainController {
     @Param('filename') filename: string,
     @Res({ passthrough: true }) response: Response,
   ): Promise<StreamableFile> {
+    if (this.imageCache.has(filename)) {
+      return new Promise((resolve) => {
+        sendFile(
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          Buffer.from(this.imageCache.get(filename)!, 'base64'),
+          response,
+          resolve,
+        );
+      });
+    }
     const bucket = this.storage.bucket(HISTORY_BUCKET, {});
     const file = bucket.file(filename, {});
     return file.exists().then((exists) => {
@@ -60,23 +76,32 @@ export class MountainController {
       }
       return file.download().then((content) => {
         return new Promise((resolve) => {
-          tmpFile((err, path, fd, cleanupCallback) => {
-            writeFileSync(path, content[0]);
-            console.log(path);
-            response.set({
-              'Content-Type': 'image/png',
-              'Content-Disposition': `inline`,
-            });
-            const f = createReadStream(path);
-            f.on('close', () => {
-              cleanupCallback();
-            });
-            resolve(new StreamableFile(f));
-          });
+          this.imageCache.set(filename, content[0].toString('base64'));
+          sendFile(content[0], response, resolve);
         });
       });
     });
   }
+}
+
+function sendFile(
+  content: Buffer,
+  response: Response,
+  resolve: (value: StreamableFile) => void,
+) {
+  tmpFile((err, path, fd, cleanupCallback) => {
+    writeFileSync(path, content);
+    content.toString('base64');
+    response.set({
+      'Content-Type': 'image/png',
+      'Content-Disposition': `inline`,
+    });
+    const f = createReadStream(path);
+    f.on('close', () => {
+      cleanupCallback();
+    });
+    resolve(new StreamableFile(f));
+  });
 }
 
 interface MountainHistoryResponse {
@@ -86,9 +111,4 @@ interface MountainHistoryResponse {
 interface MountainFile {
   readonly name: string;
   readonly datetime: string;
-}
-
-interface BucketFile {
-  readonly bucketName: string;
-  readonly fileName: string;
 }

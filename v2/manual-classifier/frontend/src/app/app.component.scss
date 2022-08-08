@@ -1,0 +1,31 @@
+@use '@angular/material' as mat;
+
+:host {
+  display: block;
+  box-sizing: border-box;
+  padding: 24px;
+  background: mat.get-color-from-palette(mat.$grey-palette, 300);
+  height: 100%;
+
+
+  .classification-upload-button {
+    position: absolute;
+    top: 16px;
+    right: 15px;
+  }
+
+  mat-card-content {
+    display: flex;
+    flex-direction: row;
+    
+    .classification-options {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+
+      button {
+        margin: 0 8px;
+      }
+    }
+  }
+}

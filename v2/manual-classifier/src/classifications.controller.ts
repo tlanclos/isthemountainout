@@ -17,26 +17,45 @@ const CLASSIFICATIONS: BucketFile = {
 export class ClassificationsController {
   private readonly storage = new Storage({});
 
-  @Get()
-  getClassifications(): Promise<string> {
+  private getCurrentClassifications(): Promise<Classifications> {
     const bucket = this.storage.bucket(CLASSIFICATIONS.bucketName, {});
     const file = bucket.file(CLASSIFICATIONS.fileName, {});
     return file.exists().then((exists) => {
       if (exists[0]) {
-        return file.download().then((data) => data[0].toString());
+        return file.download().then((data) => JSON.parse(data[0].toString()));
       } else {
-        return JSON.stringify({});
+        return {};
       }
     });
+  }
+
+  @Get()
+  getClassifications(): Promise<string> {
+    return this.getCurrentClassifications().then((classifications) =>
+      JSON.stringify(classifications),
+    );
+  }
+
+  @Get('options')
+  getClassificationOptions(): string {
+    return JSON.stringify({ options: Object.values(ClassificationNameEnum) });
   }
 
   @Put()
   updateClassifications(@Body() request: unknown): Promise<string> {
     assertClassifications(request);
-    const bucket = this.storage.bucket(CLASSIFICATIONS.bucketName, {});
-    const file = bucket.file(CLASSIFICATIONS.fileName, {});
-    const content = JSON.stringify(request);
-    return file.save(content).then(() => content);
+    return this.getCurrentClassifications().then((currentClassifications) => {
+      for (const [filename, classification] of Object.entries(request)) {
+        currentClassifications[filename] = {
+          ...currentClassifications[filename],
+          ...classification,
+        };
+      }
+      const bucket = this.storage.bucket(CLASSIFICATIONS.bucketName, {});
+      const file = bucket.file(CLASSIFICATIONS.fileName, {});
+      const content = JSON.stringify(currentClassifications);
+      return file.save(content).then(() => content);
+    });
   }
 }
 
