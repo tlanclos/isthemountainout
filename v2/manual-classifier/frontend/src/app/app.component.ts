@@ -11,9 +11,10 @@ import {
   OnDestroy,
   ViewChild,
 } from '@angular/core';
-import { combineLatest, ReplaySubject } from 'rxjs';
-import { filter, map, shareReplay, switchMap, takeUntil } from 'rxjs/operators';
-import { HistoryService, MountainFile } from './history.service';
+import { combineLatest, of, ReplaySubject, Observable } from 'rxjs';
+import { map, shareReplay, switchMap, takeUntil } from 'rxjs/operators';
+import { HistoryService } from './history.service';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-root',
@@ -22,26 +23,37 @@ import { HistoryService, MountainFile } from './history.service';
 })
 export class AppComponent implements OnDestroy {
   private readonly destroyedSubject = new ReplaySubject<void>(1);
+  private readonly mountainPositionIntervalId: number;
 
   private mountainPosition: [number, number] | undefined = [
     1026.9767441860465, 449.84509466437174,
   ];
   readonly canvasSize = [1920, 1080];
 
-  readonly currentContent$ = this.navigator.currentFile$.pipe(
-    filter((file): file is MountainFile => file !== undefined),
-    switchMap((file) =>
-      this.history
-        .image(file.name)
-        .pipe(map((imageBase64) => ({ file, imageBase64 }))),
-    ),
-    map((content) => ({
-      title: 'Mt. Rainier',
-      subTitle: content.file.name,
-      fileName: content.file.name,
-      imageBase64Url: `data:image/png;base64,${content.imageBase64}`,
-    })),
-  );
+  readonly currentContent$: Observable<MountainImageContent | undefined> =
+    this.navigator.currentFile$.pipe(
+      switchMap((file) => {
+        if (file) {
+          return this.history
+            .image(file.name)
+            .pipe(map((imageBase64) => ({ file, imageBase64 })));
+        } else {
+          return of(undefined);
+        }
+      }),
+      map((content) => {
+        if (content) {
+          return {
+            title: 'Mt. Rainier',
+            subTitle: content.file.name,
+            fileName: content.file.name,
+            imageBase64Url: `data:image/png;base64,${content.imageBase64}`,
+          };
+        } else {
+          return undefined;
+        }
+      }),
+    );
 
   @ViewChild('mountainCanvas')
   mountainCanvas!: ElementRef<HTMLCanvasElement>;
@@ -59,6 +71,7 @@ export class AppComponent implements OnDestroy {
     readonly navigator: AppNavigationService,
     private readonly history: HistoryService,
     private readonly classifications: ClassificationService,
+    private readonly snackBar: MatSnackBar,
   ) {
     combineLatest({
       content: this.currentContent$,
@@ -66,6 +79,9 @@ export class AppComponent implements OnDestroy {
     })
       .pipe(takeUntil(this.destroyedSubject))
       .subscribe(({ content, classifications }) => {
+        if (!content) {
+          return;
+        }
         if (this.classificationUpdates.has(content.fileName)) {
           this.mountainPosition = this.classificationUpdates.get(
             content.fileName,
@@ -75,19 +91,24 @@ export class AppComponent implements OnDestroy {
             classifications[content.fileName].mountainPosition;
         }
       });
-    this.navigator.reload();
+    this.mountainPositionIntervalId = setInterval(() => {
+      if (this.mountainCanvas && this.mountainImage) {
+        this.drawMountainPosition(
+          this.mountainCanvas.nativeElement,
+          this.mountainImage.nativeElement,
+        );
+      }
+    }, 250);
+    this.reload();
   }
 
-  ngDoCheck() {
-    if (this.mountainCanvas && this.mountainImage) {
-      this.drawMountainPosition(
-        this.mountainCanvas.nativeElement,
-        this.mountainImage.nativeElement,
-      );
-    }
+  private reload() {
+    this.navigator.reload();
+    this.classificationUpdates.clear();
   }
 
   ngOnDestroy(): void {
+    clearInterval(this.mountainPositionIntervalId);
     this.destroyedSubject.next();
     this.destroyedSubject.complete();
   }
@@ -138,8 +159,14 @@ export class AppComponent implements OnDestroy {
     for (const [filename, classification] of updates.entries()) {
       classifications[filename] = classification;
     }
-    this.classifications.save(classifications).subscribe();
-    this.navigator.reload();
+    this.classifications.save(classifications).subscribe(() => {
+      this.snackBar.open('Successfully uploaded classifications!', 'Dismiss', {
+        horizontalPosition: 'end',
+        verticalPosition: 'top',
+        duration: 2000,
+      });
+    });
+    this.reload();
   }
 }
 
@@ -148,4 +175,11 @@ function assertExists<T>(value: T | undefined): value is T {
     throw new Error('value was undefined');
   }
   return true;
+}
+
+interface MountainImageContent {
+  readonly title: string;
+  readonly subTitle: string;
+  readonly fileName: string;
+  readonly imageBase64Url: string;
 }

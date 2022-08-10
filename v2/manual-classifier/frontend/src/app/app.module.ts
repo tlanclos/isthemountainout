@@ -8,6 +8,7 @@ import { HistoryService } from './history.service';
 import { ClassificationService } from './classification.service';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { MatButtonModule } from '@angular/material/button';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 
 @NgModule({
   declarations: [AppComponent],
@@ -17,6 +18,7 @@ import { MatButtonModule } from '@angular/material/button';
     MatButtonModule,
     MatCardModule,
     MatIconModule,
+    MatSnackBarModule,
   ],
   providers: [AppNavigationService, HistoryService, ClassificationService],
   bootstrap: [AppComponent],
