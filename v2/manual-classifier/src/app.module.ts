@@ -5,10 +5,12 @@ import { Module } from '@nestjs/common';
 import { ServeStaticModule } from '@nestjs/serve-static';
 
 @Module({
-  imports: [ServeStaticModule.forRoot({
-    rootPath: join(__dirname, '../../frontend/dist/frontend'),
-  }),],
+  imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '../frontend/dist/frontend'),
+    }),
+  ],
   controllers: [ClassificationsController, MountainController],
   providers: [],
 })
-export class AppModule { }
+export class AppModule {}
