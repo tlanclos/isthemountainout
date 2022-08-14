@@ -1,0 +1,11 @@
+services:
+  manual-classifier:
+    build: .
+    user: "node"
+    ports:
+      - "3000:3000"
+    expose:
+      - "3000:3000"
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=isthemountainout-credentials.json
+    command: "npm run start"
