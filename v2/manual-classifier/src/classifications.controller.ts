@@ -1,3 +1,4 @@
+import { IsUserAuthorized } from './google-auth.guard';
 import {
   Controller,
   Get,
@@ -5,6 +6,7 @@ import {
   Body,
   HttpException,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { Storage } from '@google-cloud/storage';
 
@@ -30,6 +32,7 @@ export class ClassificationsController {
   }
 
   @Get()
+  @UseGuards(IsUserAuthorized)
   getClassifications(): Promise<string> {
     return this.getCurrentClassifications().then((classifications) =>
       JSON.stringify(classifications),
@@ -37,11 +40,13 @@ export class ClassificationsController {
   }
 
   @Get('options')
+  @UseGuards(IsUserAuthorized)
   getClassificationOptions(): string {
     return JSON.stringify({ options: Object.values(ClassificationNameEnum) });
   }
 
   @Put()
+  @UseGuards(IsUserAuthorized)
   updateClassifications(@Body() request: unknown): Promise<string> {
     assertClassifications(request);
     return this.getCurrentClassifications().then((currentClassifications) => {

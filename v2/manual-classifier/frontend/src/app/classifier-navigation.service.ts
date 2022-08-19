@@ -4,7 +4,7 @@ import { HistoryService, MountainFile } from './history.service';
 import { Injectable } from '@angular/core';
 
 @Injectable()
-export class AppNavigationService {
+export class ClassifierNavigationService {
   private index = -1;
   private files: readonly MountainFile[] = [];
 

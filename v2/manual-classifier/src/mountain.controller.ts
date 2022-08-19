@@ -1,3 +1,4 @@
+import { GoogleOAuthGuard, IsUserAuthorized } from './google-auth.guard';
 import {
   Controller,
   Get,
@@ -6,6 +7,7 @@ import {
   Param,
   Res,
   StreamableFile,
+  UseGuards,
 } from '@nestjs/common';
 import { Storage } from '@google-cloud/storage';
 import { file as tmpFile } from 'tmp';
@@ -25,6 +27,7 @@ export class MountainController {
   private readonly imageCache = new Map<string, string>();
 
   @Get('history')
+  @UseGuards(IsUserAuthorized)
   getMountainHistory(): Promise<string> {
     const bucket = this.storage.bucket(HISTORY_BUCKET, {});
     return bucket
@@ -51,6 +54,7 @@ export class MountainController {
   }
 
   @Get('history/:filename')
+  @UseGuards(IsUserAuthorized)
   getMountainHistoryFile(
     @Param('filename') filename: string,
     @Res({ passthrough: true }) response: Response,
