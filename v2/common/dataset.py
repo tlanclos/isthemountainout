@@ -7,15 +7,17 @@ class Dataset:
     directory: str
     batch_size: int
     image_size: Tuple[int, int]
+    validation_split: float
     training: tf.data.Dataset
     validation: tf.data.Dataset
     seed: int
 
-    def __init__(self, directory: str, *, batch_size=32, image_size=(1920, 1080)):
+    def __init__(self, directory: str, *, batch_size=32, image_size=(1920, 1080), validation_split=0.2):
         self.seed = int(time.time())
         self.directory = directory
         self.batch_size = batch_size
         self.image_size = image_size
+        self.validation_split = validation_split
 
         self.training = self.dataset_for('training')
         self.validation = self.dataset_for('validation')
@@ -25,7 +27,7 @@ class Dataset:
             self.directory,
             label_mode='categorical',
             seed=self.seed,
-            validation_split=0.2,
+            validation_split=self.validation_split,
             subset=subset,
             batch_size=self.batch_size,
             image_size=self.image_size,
