@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Tuple, Dict, Iterator
 from google.cloud import storage as gstorage
 from urllib.parse import urlparse
-from common.config import mountain_history_bucket_name, mountain_history_filename_template, classification_bucket_name, classification_filename
+from common.config import brand_filename, mountain_history_bucket_name, mountain_history_filename_template, classification_bucket_name, classification_filename
 from common.storage import GcpBucketStorage
 from io import BytesIO
 import requests
@@ -99,5 +99,34 @@ class DatasetImageProvider:
         return self.image_storage.get(filename)
 
 
-def crop(image: Image, *, x: int, y: int, width: int, height: int) -> Image:
-    return image.crop((x, y, x + width, y + height))
+class BrandImageProvider:
+    storage: GcpBucketStorage
+
+    def __init__(self):
+        self.storage = GcpBucketStorage(
+            bucket_name=classification_bucket_name())
+
+    def get(self) -> Image.Image:
+        blob = self.storage.get(os.path.join('v2', brand_filename()))
+        blob.download_as_string()
+
+
+class ImageEditor:
+    image: Image
+
+    def __init__(self, image: Image):
+        self.image = image
+
+    def crop(self, *, x: int, y: int, width: int, height: int):
+        self.image = self.image.crop((x, y, x + width, y + height))
+        return self
+
+    def brand(self, *, brand: Image):
+        self.image = self.__apply_brand(self.image, brand=brand)
+        return self
+
+    def __apply_brand(self, *, brand: Image):
+        branded = self.image.copy()
+        branded.paste(brand, (0, 0), brand)
+        self.image = branded
+        return self

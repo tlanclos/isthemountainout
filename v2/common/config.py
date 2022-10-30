@@ -12,3 +12,7 @@ def classification_bucket_name() -> str:
 
 def classification_filename() -> str:
     return 'mountain-history.classifications.json'
+
+
+def brand_filename() -> str:
+    return 'branding_1920x1080.png'
