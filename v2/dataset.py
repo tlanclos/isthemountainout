@@ -1,6 +1,4 @@
 import os
-import shutil
-import tempfile
 from zipfile import ZipFile
 from datetime import datetime
 from common.image import DatasetImageProvider
