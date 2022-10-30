@@ -5,7 +5,7 @@ from zipfile import ZipFile
 import argparse
 from typing import List, Dict
 
-parser = argparse.ArgumentParser(description='Build pakcages for deployment')
+parser = argparse.ArgumentParser(description='Build packages for deployment')
 parser.add_argument('package', choices=['snapshot'], help='Package to build')
 
 args = parser.parse_args()
