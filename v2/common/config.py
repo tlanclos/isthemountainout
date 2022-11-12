@@ -16,3 +16,11 @@ def classification_filename() -> str:
 
 def brand_filename() -> str:
     return 'branding_1920x1080.png'
+
+
+def model_bucket_name() -> str:
+    return 'isthemountainout.appspot.com'
+
+
+def model_filename() -> str:
+    return 'v2/isthemountainout.h5'

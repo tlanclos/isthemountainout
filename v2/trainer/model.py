@@ -11,7 +11,7 @@ class Label(Enum):
     BEAUTIFUL = 'Beautiful'
 
 
-def generate(*, weights_filepath: Optional[str] = None) -> tf.keras.Model:
+def generate_model(*, weights_filepath: Optional[str] = None) -> tf.keras.Model:
     shape = (224, 224, 3)
     inputs = tf.keras.Input(shape=shape)
     outputs = m.chained(
