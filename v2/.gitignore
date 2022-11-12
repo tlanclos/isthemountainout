@@ -1,7 +1,9 @@
 deploy
 deploy/*
-isthemountainout-*.json
+isthemountainout*.json
+isthemountainout*.h5*
 noarch
 noarch/*
 dataset
 dataset/*
+.DS_Store
