@@ -1,11 +1,13 @@
+import argparse
 import tensorflow as tf
+import numpy as np
+
 from common.config import model_bucket_name
 from common.image import LatestSnapshotImageProvider, SpaceNeedleImageProvider, ImageProvider
-from common.frozenmodel import generate_model
+from common.frozenmodel import generate_model, labels
 from common.storage import GcpBucketStorage
 from common.weights import weights
 from PIL import Image
-import argparse
 
 
 parser = argparse.ArgumentParser(
@@ -33,7 +35,7 @@ class Classifier:
         # img_array = img_array.astype('float32')
         img_array = tf.expand_dims(img_array, 0)
         score = tf.nn.softmax(model.predict(img_array))
-        print(score)
+        return labels()[np.argmax(score)]
 
 
 def get_image_provider(source: str) -> ImageProvider:
@@ -52,7 +54,7 @@ def main(request):
     image, date = image_provider.get()
 
     print(f'Classifying image for date {date}')
-    classifier.classify(image=image)
+    print(classifier.classify(image=image))
     # print(date)
     # image.show()
 
