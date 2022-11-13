@@ -20,6 +20,11 @@ class ImageProvider:
 
 
 class SpaceNeedleImageProvider(ImageProvider):
+    cropped: bool
+
+    def __init__(self, *, cropped: bool = True):
+        self.cropped = cropped
+
     def __space_needle_url(self) -> str:
         return 'https://backend.roundshot.com/cams/241/original'
 
@@ -41,7 +46,11 @@ class SpaceNeedleImageProvider(ImageProvider):
             width, height = image.size
             # The original image size had a height of 2048, so try to keep it within those bounds keeping the aspect ratio
             scale = height / 2048
-            return image.resize((int(width / scale), int(height / scale))), date
+            resized = image.resize((int(width / scale), int(height / scale)))
+            if self.cropped:
+                resized = ImageEditor(resized).crop(
+                    x=7036, y=162, width=1920, height=1080).image
+            return resized, date
         else:
             raise IOError(
                 f'Could not download latest image from {url} -> {redirected_url}', req)
