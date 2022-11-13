@@ -1,10 +1,9 @@
-import os
-import tempfile
 import tensorflow as tf
-from common.config import model_bucket_name, model_filename
+from common.config import model_bucket_name
 from common.image import LatestSnapshotImageProvider, SpaceNeedleImageProvider, ImageProvider
 from common.frozenmodel import generate_model
 from common.storage import GcpBucketStorage
+from common.weights import weights
 from PIL import Image
 import argparse
 
@@ -25,20 +24,8 @@ class Classifier:
         self.model_bucket = GcpBucketStorage(bucket_name=model_bucket_name())
 
     def _load_model(self):
-        if args.local_weights:
-            print(f'Loading weight locally from {args.local_weights}')
-            return generate_model(weights_filepath=args.local_weights)
-        else:
-            print(f'Loading weights from the cloud')
-            try:
-                blob = self.model_bucket.get(model_filename())
-                f = tempfile.TemporaryFile(delete=False)
-                f.write(blob.download_as_bytes())
-                model = generate_model(weights_filepath=f.name)
-            finally:
-                f.close()
-                os.unlink(f.name)
-                return model
+        with weights(local_filename=args.local_weights) as filepath:
+            return generate_model(weights_filepath=filepath)
 
     def classify(self, *, image: Image.Image):
         model = self._load_model()
