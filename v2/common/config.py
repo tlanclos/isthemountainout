@@ -10,9 +10,21 @@ def classification_bucket_name() -> str:
     return 'isthemountainout.appspot.com'
 
 
+def model_bucket_name() -> str:
+    return 'isthemountainout.appspot.com'
+
+
+def model_filename() -> str:
+    return 'v2/isthemountainout.h5'
+
+
 def classification_filename() -> str:
     return 'mountain-history.classifications.json'
 
 
+def brand_bucket_name() -> str:
+    return 'isthemountainout.appspot.com'
+
+
 def brand_filename() -> str:
-    return 'branding_1920x1080.png'
+    return 'v2/branding_1920x1080.png'
