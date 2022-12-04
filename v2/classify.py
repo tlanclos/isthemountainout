@@ -7,6 +7,8 @@ from common.image import LatestSnapshotImageProvider, SpaceNeedleImageProvider, 
 from common.frozenmodel import generate_model, labels
 from common.storage import GcpBucketStorage
 from common.weights import weights
+from common.sheets import ClassificationRow
+from googleapiclient.discovery import build as build_api
 from PIL import Image
 
 
@@ -21,9 +23,11 @@ args = parser.parse_args()
 
 class Classifier:
     model_bucket: GcpBucketStorage
+    image_source: str
 
-    def __init__(self):
+    def __init__(self, *, image_source: str):
         self.model_bucket = GcpBucketStorage(bucket_name=model_bucket_name())
+        self.image_source = image_source
 
     def _load_model(self):
         with weights(local_filename=args.local_weights) as filepath:
@@ -37,26 +41,44 @@ class Classifier:
         score = tf.nn.softmax(model.predict(img_array))
         return labels()[np.argmax(score)]
 
+    def classify_next(self) -> ClassificationRow:
+        image_provider = self._get_image_provider(self.image_source)
+        image, date = image_provider.get()
 
-def get_image_provider(source: str) -> ImageProvider:
-    if source == 'live':
-        return SpaceNeedleImageProvider()
-    elif source == 'snapshot':
-        return LatestSnapshotImageProvider()
-    else:
-        print(f'Unknown image source {source}')
-        raise Exception(f'Unknown image source {source}')
+        print(f'Classifying image for date {date}')
+        return ClassificationRow(
+            date=date,
+            classification=self.classify(image=image))
+
+    def _get_image_provider(self, source: str) -> ImageProvider:
+        if source == 'live':
+            return SpaceNeedleImageProvider()
+        elif source == 'snapshot':
+            return LatestSnapshotImageProvider()
+        else:
+            print(f'Unknown image source {source}')
+            raise Exception(f'Unknown image source {source}')
+
+
+class ClassificationTracker:
+    def __init__(self) -> None:
+        pass
+
+    def amend(self, classification: ClassificationRow):
+        service = build_api('sheets', 'v4')
+        service.spreadsheets().values().append(
+            spreadsheetId='1nMkjiqMvsOhj-ljEab2aBvNWy3bJXdot3u2vRXsyI5Q',
+            range='StateV2!A2:C',
+            valueInputOption='USER_ENTERED',
+            insertDataOption='INSERT_ROWS',
+            body={'values': [[*classification.as_list(), 'FALSE']]},
+        ).execute()
 
 
 def main(request):
-    classifier = Classifier()
-    image_provider = get_image_provider(args.source)
-    image, date = image_provider.get()
-
-    print(f'Classifying image for date {date}')
-    print(classifier.classify(image=image))
-    # print(date)
-    # image.show()
+    classifier = Classifier(image_source=args.source)
+    classification_tracker = ClassificationTracker()
+    classification_tracker.amend(classifier.classify_next())
 
 
 if __name__ == '__main__':
