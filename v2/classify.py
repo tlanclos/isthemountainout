@@ -1,6 +1,7 @@
 import argparse
 import tensorflow as tf
 import numpy as np
+import json
 
 from common.config import model_bucket_name
 from common.image import LatestSnapshotImageProvider, SpaceNeedleImageProvider, ImageProvider
@@ -10,6 +11,8 @@ from common.weights import weights
 from common.sheets import ClassificationRow
 from googleapiclient.discovery import build as build_api
 from PIL import Image
+from typing import Optional
+from flask import make_response
 
 
 parser = argparse.ArgumentParser(
@@ -18,19 +21,20 @@ parser.add_argument('source', choices=[
                     'live', 'snapshot'], help='Source image provider')
 parser.add_argument(
     '--local-weights', help='Set this flag to the path for the local weights filename, unset will load weights from cloud storage')
-args = parser.parse_args()
 
 
 class Classifier:
     model_bucket: GcpBucketStorage
     image_source: str
+    local_weights: Optional[str]
 
-    def __init__(self, *, image_source: str):
+    def __init__(self, *, image_source: str, local_weights: Optional[str] = None):
         self.model_bucket = GcpBucketStorage(bucket_name=model_bucket_name())
         self.image_source = image_source
+        self.local_weights = local_weights
 
     def _load_model(self):
-        with weights(local_filename=args.local_weights) as filepath:
+        with weights(local_filename=self.local_weights) as filepath:
             return generate_model(weights_filepath=filepath)
 
     def classify(self, *, image: Image.Image):
@@ -76,10 +80,25 @@ class ClassificationTracker:
 
 
 def main(request):
-    classifier = Classifier(image_source=args.source)
+    req = request.json
+    classifier = Classifier(
+        image_source=req.get('source', 'snapshot'), local_weights=req.get('local_weights', None))
     classification_tracker = ClassificationTracker()
-    classification_tracker.amend(classifier.classify_next())
+    classification = classifier.classify_next()
+    classification_tracker.amend(classification)
+    return make_response((json.dumps({
+        'date': classification.date.isoformat(),
+        'classification': classification.classification.name,
+    }), 200, {'Content-Type': 'application/json'}))
 
 
 if __name__ == '__main__':
-    main(None)
+    args = parser.parse_args()
+
+    class FakeRequest:
+        def json(self):
+            return {
+                'source': args.source,
+                'local_weights': args.local_weights,
+            }
+    main(FakeRequest())

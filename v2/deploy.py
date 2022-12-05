@@ -6,7 +6,8 @@ import argparse
 from typing import List, Dict
 
 parser = argparse.ArgumentParser(description='Build packages for deployment')
-parser.add_argument('package', choices=['snapshot'], help='Package to build')
+parser.add_argument('package', choices=[
+                    'snapshot', 'classify'], help='Package to build')
 
 args = parser.parse_args()
 
@@ -23,7 +24,7 @@ class DeploymentOptions:
 
 
 def list_files(startpath):
-    for root, dirs, files in os.walk(startpath):
+    for root, _, files in os.walk(startpath):
         level = root.replace(startpath, '').count(os.sep)
         indent = ' ' * 4 * (level)
         print('{}{}/'.format(indent, os.path.basename(root)))
@@ -62,6 +63,15 @@ if args.package == 'snapshot':
         include_files={
             'snapshot.py': 'main.py',
             'requirements.snapshot.txt': 'requirements.txt',
+        },
+    ))
+elif args.package == 'classify':
+    deploy_package(DeploymentOptions(
+        archive_name='classify',
+        include_directories=['common'],
+        include_files={
+            'classify.py': 'main.py',
+            'requirements.classify.txt': 'requirements.txt',
         },
     ))
 else:

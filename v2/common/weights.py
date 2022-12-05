@@ -17,7 +17,7 @@ def weights(local_filename: Optional[str] = None):
         bucket = GcpBucketStorage(bucket_name=model_bucket_name())
         try:
             blob = bucket.get(model_filename())
-            f = tempfile.TemporaryFile(delete=False)
+            f = tempfile.NamedTemporaryFile(delete=False)
             f.write(blob.download_as_bytes())
             yield f.name
         finally:
