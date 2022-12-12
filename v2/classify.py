@@ -1,3 +1,4 @@
+import os
 import argparse
 import tensorflow as tf
 import numpy as np
@@ -15,6 +16,7 @@ from PIL import Image
 from typing import Optional
 from flask import make_response
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 parser = argparse.ArgumentParser(
     description='Classify an image of Mount Rainier')
@@ -44,11 +46,11 @@ class Classifier:
 
     def classify(self, *, image: Image.Image):
         model = self._load_model()
-        img_array = tf.keras.utils.img_to_array(image) / 255.0
-        # img_array = img_array.astype('float32')
+        img_array = tf.keras.utils.img_to_array(
+            image).astype('float32')
         img_array = tf.expand_dims(img_array, 0)
         score = tf.nn.softmax(model.predict(img_array))
-        return labels()[np.argmax(score)]
+        return labels()[np.argmax(score, axis=1)[0]]
 
     def classify_next(self) -> ClassificationRow:
         image_provider = self._get_image_provider(self.image_source)
@@ -95,9 +97,9 @@ def main(request):
         local_weights=req.get('local_weights', None),
         snapshot_timestamp=req.get('snapshot_timestamp', None))
     classification = classifier.classify_next()
-    print(classification)
-    classification_tracker = ClassificationTracker()
-    classification_tracker.amend(classification)
+    print('Classification', classification)
+    # classification_tracker = ClassificationTracker()
+    # classification_tracker.amend(classification)
     return make_response((json.dumps({
         'date': classification.date.isoformat(),
         'classification': classification.classification.name,
