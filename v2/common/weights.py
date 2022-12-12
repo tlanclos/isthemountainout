@@ -15,11 +15,10 @@ def weights(local_filename: Optional[str] = None):
     else:
         print(f'Loading weights from the cloud')
         bucket = GcpBucketStorage(bucket_name=model_bucket_name())
+        filename = '/tmp/isthemountainout.h5'
         try:
             blob = bucket.get(model_filename())
-            f = tempfile.NamedTemporaryFile(delete=False)
-            f.write(blob.download_as_bytes())
-            yield f.name
+            blob.download_to_filename(filename)
+            yield filename
         finally:
-            f.close()
-            os.unlink(f.name)
+            os.unlink(filename)
