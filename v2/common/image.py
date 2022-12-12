@@ -4,7 +4,7 @@ import io
 import shutil
 from datetime import date as Date
 from datetime import datetime
-from typing import Tuple, Dict, Iterator
+from typing import Tuple, Dict, Iterator, Optional
 from google.cloud import storage as gstorage
 from urllib.parse import urlparse
 from common.config import brand_bucket_name, brand_filename, mountain_history_bucket_name, mountain_history_filename_template, classification_bucket_name, classification_filename
@@ -12,6 +12,7 @@ from common.storage import GcpBucketStorage
 from io import BytesIO
 import requests
 from PIL import Image
+from bisect import bisect
 
 
 class ImageProvider:
@@ -56,24 +57,40 @@ class SpaceNeedleImageProvider(ImageProvider):
                 f'Could not download latest image from {url} -> {redirected_url}', req)
 
 
-class LatestSnapshotImageProvider(ImageProvider):
+class TimestampedSnapshotImageProvider(ImageProvider):
     storage: GcpBucketStorage
+    timestamp: Optional[datetime]
 
-    def __latest_image_file(self) -> gstorage.Blob:
-        blob = next(
-            reversed(sorted(self.storage.list_files(''), key=self.__date_of_blob)))
-        return blob, self.__date_of_blob(blob)
+    def _image_file(self) -> Tuple[gstorage.Blob, datetime]:
+        if self.timestamp is None:
+            blob = next(
+                reversed(sorted(self.storage.list_files(''), key=self._date_of_blob)))
+            return blob, self._date_of_blob(blob)
+        else:
+            blobs = list(
+                sorted(self.storage.list_files(''), key=self._date_of_blob))
+            timestamps = [self._date_of_blob(blob) for blob in blobs]
+            index = max(0, min(len(timestamps) - 1,
+                        bisect(timestamps, self.timestamp)))
+            blob = blobs[index]
+            return blob, self._date_of_blob(blob)
 
-    def __date_of_blob(self, blob) -> datetime:
+    def _date_of_blob(self, blob) -> datetime:
         return datetime.strptime(os.path.splitext(blob.name)[0], mountain_history_filename_template())
 
-    def __init__(self):
+    def __init__(self, *, timestamp: Optional[datetime] = None):
         self.storage = GcpBucketStorage(
             bucket_name=mountain_history_bucket_name())
+        self.timestamp = timestamp
 
     def get(self) -> Tuple[Image.Image, Date]:
-        image_blob, date = self.__latest_image_file()
+        image_blob, date = self._image_file()
         return Image.open(BytesIO(image_blob.download_as_bytes())), date
+
+
+class LatestSnapshotImageProvider(TimestampedSnapshotImageProvider):
+    def __init__(self):
+        super().__init__(timestamp=None)
 
 
 class Classification:

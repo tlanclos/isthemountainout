@@ -4,11 +4,12 @@ import numpy as np
 import json
 
 from common.config import model_bucket_name
-from common.image import LatestSnapshotImageProvider, SpaceNeedleImageProvider, ImageProvider
+from common.image import LatestSnapshotImageProvider, SpaceNeedleImageProvider, ImageProvider, TimestampedSnapshotImageProvider
 from common.frozenmodel import generate_model, labels
 from common.storage import GcpBucketStorage
 from common.weights import weights
 from common.sheets import ClassificationRow
+from datetime import datetime
 from googleapiclient.discovery import build as build_api
 from PIL import Image
 from typing import Optional
@@ -21,17 +22,21 @@ parser.add_argument('source', choices=[
                     'live', 'snapshot'], help='Source image provider')
 parser.add_argument(
     '--local-weights', help='Set this flag to the path for the local weights filename, unset will load weights from cloud storage')
+parser.add_argument('--snapshot-timestamp',
+                    help='Set this flag to the snapshot timestamp to use for classification')
 
 
 class Classifier:
     model_bucket: GcpBucketStorage
     image_source: str
     local_weights: Optional[str]
+    snapshot_timestamp: Optional[str]
 
-    def __init__(self, *, image_source: str, local_weights: Optional[str] = None):
+    def __init__(self, *, image_source: str, local_weights: Optional[str] = None, snapshot_timestamp: Optional[str] = None):
         self.model_bucket = GcpBucketStorage(bucket_name=model_bucket_name())
         self.image_source = image_source
         self.local_weights = local_weights
+        self.snapshot_timestamp = snapshot_timestamp
 
     def _load_model(self):
         with weights(local_filename=self.local_weights) as filepath:
@@ -58,7 +63,11 @@ class Classifier:
         if source == 'live':
             return SpaceNeedleImageProvider()
         elif source == 'snapshot':
-            return LatestSnapshotImageProvider()
+            if self.snapshot_timestamp is not None:
+                return TimestampedSnapshotImageProvider(
+                    timestamp=datetime.strptime(self.snapshot_timestamp, '%Y-%m-%dT%H:%M:%S'))
+            else:
+                return LatestSnapshotImageProvider()
         else:
             print(f'Unknown image source {source}')
             raise Exception(f'Unknown image source {source}')
@@ -82,9 +91,12 @@ class ClassificationTracker:
 def main(request):
     req = request.json
     classifier = Classifier(
-        image_source=req.get('source', 'snapshot'), local_weights=req.get('local_weights', None))
-    classification_tracker = ClassificationTracker()
+        image_source=req.get('source', 'snapshot'),
+        local_weights=req.get('local_weights', None),
+        snapshot_timestamp=req.get('snapshot_timestamp', None))
     classification = classifier.classify_next()
+    print(classification)
+    classification_tracker = ClassificationTracker()
     classification_tracker.amend(classification)
     return make_response((json.dumps({
         'date': classification.date.isoformat(),
@@ -96,9 +108,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     class FakeRequest:
+        @property
         def json(self):
             return {
                 'source': args.source,
                 'local_weights': args.local_weights,
+                'snapshot_timestamp': args.snapshot_timestamp,
             }
     main(FakeRequest())
