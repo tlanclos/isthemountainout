@@ -28,3 +28,11 @@ def brand_bucket_name() -> str:
 
 def brand_filename() -> str:
     return 'v2/branding_1920x1080.png'
+
+
+def twitter_api_key_bucket_name():
+    return 'isthemountainout.appspot.com'
+
+
+def twitter_api_key_filename():
+    return 'v2/twitter-keys.json'

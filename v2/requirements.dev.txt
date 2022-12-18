@@ -12,3 +12,5 @@ nbformat==5.7.0
 matplotlib==3.6.2
 seaborn==0.12.1
 scikit-learn==1.2.0
+tweepy==4.12.1
+astral==3.2
