@@ -76,6 +76,10 @@ class Classifier:
             print(
                 f'Faulty classification detected, defaulting to {Label.NIGHT}: was {classification}, but is actually night time')
             classification = Label.NIGHT
+        elif not self.__is_night(date) and classification == Label.NIGHT:
+            print(
+                f'Faulty classification detected, defaulting to {Label.HIDDEN}: was {classification}, but is not night time')
+            classification = Label.HIDDEN
 
         return ClassificationRow(
             date=date,
@@ -180,7 +184,7 @@ class ClassificationTracker:
             return False
         else:
             print(
-                'Classification will post because it is notable and will settle with the new classification')
+                f'Classification will post because {classification} is notable from {last_classification} and will settle with the new classification')
             return True
 
     def will_classification_settle_with(self, classification: Label) -> bool:
@@ -261,11 +265,11 @@ def main(request):
     if classification_tracker.should_post(classification.classification):
         classification.was_posted = True
         classification_tracker.amend(classification)
-        # twitter = TwitterPoster(keys=TwitterApiKeys.from_storage())
-        # twitter.post(
-        #     status=twitter.status_for_label(classification),
-        #     image=twitter.brand_image(image),
-        #     tags=twitter.tags_for_label(classification))
+        twitter = TwitterPoster(keys=TwitterApiKeys.from_storage())
+        twitter.post(
+            status=twitter.status_for_label(classification),
+            image=twitter.brand_image(image),
+            tags=twitter.tags_for_label(classification))
     else:
         classification_tracker.amend(classification)
 
