@@ -79,5 +79,5 @@ class TwitterPoster:
             image.save(output, format='PNG')
             output.seek(0)
             media = api.media_upload(None, file=output)
-            api.update_status(
-                '\n'.join([status, hashtags]), media_ids=[media.media_id])
+            api.update_status(status='\n'.join(
+                [status, hashtags]), media_ids=[media.media_id])
