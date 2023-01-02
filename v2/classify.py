@@ -267,9 +267,9 @@ def main(request):
         classification_tracker.amend(classification)
         twitter = TwitterPoster(keys=TwitterApiKeys.from_storage())
         twitter.post(
-            status=twitter.status_for_label(classification),
+            status=twitter.status_for_label(classification.classification),
             image=twitter.brand_image(image),
-            tags=twitter.tags_for_label(classification))
+            tags=twitter.tags_for_label(classification.classification))
     else:
         classification_tracker.amend(classification)
 
