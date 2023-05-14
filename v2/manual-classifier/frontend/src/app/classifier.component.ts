@@ -5,8 +5,14 @@ import {
   Classification,
 } from './classification.service';
 import { Component, ElementRef, OnDestroy, ViewChild } from '@angular/core';
-import { combineLatest, of, ReplaySubject, Observable } from 'rxjs';
-import { map, shareReplay, switchMap, takeUntil } from 'rxjs/operators';
+import {
+  combineLatest,
+  of,
+  ReplaySubject,
+  Observable,
+  firstValueFrom,
+} from 'rxjs';
+import { map, shareReplay, switchMap, takeUntil, tap } from 'rxjs/operators';
 import { HistoryService } from './history.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
@@ -34,6 +40,16 @@ export class ClassifierComponent implements OnDestroy {
         } else {
           return of(undefined);
         }
+      }),
+      tap(() => {
+        // Preload the next 3 images to make image classification 'less laggy' for the user.
+        setTimeout(async () => {
+          await firstValueFrom(
+            this.navigator
+              .peek(3)
+              .pipe(switchMap((file) => this.history.image(file.name))),
+          );
+        }, 0);
       }),
       map((content) => {
         if (content) {

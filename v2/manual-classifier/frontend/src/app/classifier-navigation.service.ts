@@ -1,5 +1,5 @@
 import { ClassificationService } from './classification.service';
-import { BehaviorSubject, combineLatest } from 'rxjs';
+import { BehaviorSubject, Observable, combineLatest, from } from 'rxjs';
 import { HistoryService, MountainFile } from './history.service';
 import { Injectable } from '@angular/core';
 
@@ -28,6 +28,21 @@ export class ClassifierNavigationService {
       this.index = -1;
       this.next();
     });
+  }
+
+  /** Get an observable returning the next {count} filenames in the current list. */
+  peek(count: number): Observable<MountainFile> {
+    const files: MountainFile[] = [];
+    let currentIndex = this.index;
+    for (let i = 0; i < count; i++) {
+      const nextIndex = Math.min(currentIndex + 1, this.files.length - 1);
+      if (nextIndex === currentIndex) {
+        break;
+      }
+      files.push(this.files[nextIndex]);
+      currentIndex = nextIndex;
+    }
+    return from(files);
   }
 
   next() {
