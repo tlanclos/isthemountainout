@@ -1,10 +1,12 @@
 import json
 import tweepy
 import io
+import random
 
 from common.config import brand_bucket_name, brand_filename, twitter_api_key_bucket_name, twitter_api_key_filename
 from common.storage import GcpBucketStorage
 from common.frozenmodel import Label
+from datetime import datetime
 from typing import List
 from PIL import Image
 
@@ -38,16 +40,31 @@ class TwitterApiKeys:
 class TwitterPoster:
     keys: TwitterApiKeys
 
+    statuses = {
+        Label.BEAUTIFUL: [
+            'It\'s beautiful <3',
+            'Such a beauty <3',
+            'Breathtaking!',
+        ],
+        Label.MYSTICAL: [
+            'It\'s out!',
+            'Let it be seen!',
+            'Stealth mode lifted!',
+        ],
+        Label.HIDDEN: [
+            'It\'s hiding :(',
+            'It\'s under cover',
+            'It\'s in stealth mode',
+            'Can\'t see it today!',
+            'It\'s cloak has been activated',
+        ],
+    }
+
     def __init__(self, *, keys: TwitterApiKeys):
         self.keys = keys
 
     def status_for_label(self, label: Label) -> str:
-        if label == Label.BEAUTIFUL:
-            return 'It\'s beautiful <3'
-        elif label == Label.MYSTICAL:
-            return 'It\'s out!'
-        else:
-            return 'It\'s hiding :('
+        return __random_choice[TwitterPoster.statuses.get(label)]
 
     def tags_for_label(self, label: Label) -> List[str]:
         if label == Label.BEAUTIFUL:
@@ -81,3 +98,12 @@ class TwitterPoster:
             media = api.media_upload(None, file=output)
             api.update_status(status='\n'.join(
                 [status, hashtags]), media_ids=[media.media_id])
+
+
+def __days_since_epoch():
+    return (datetime.utcnow() - datetime(1970, 1, 1)).days
+
+
+def __random_choice(choices: List[str]) -> str:
+    r = random.Random(__days_since_epoch())
+    return r.choice(choices)
