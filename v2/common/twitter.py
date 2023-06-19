@@ -64,7 +64,9 @@ class TwitterPoster:
         self.keys = keys
 
     def status_for_label(self, label: Label) -> str:
-        return __random_choice[TwitterPoster.statuses.get(label)]
+        days_since_epoch = (datetime.utcnow() - datetime(1970, 1, 1)).days
+        r = random.Random(days_since_epoch)
+        return r.choice(TwitterPoster.statuses.get(label))
 
     def tags_for_label(self, label: Label) -> List[str]:
         if label == Label.BEAUTIFUL:
@@ -88,22 +90,19 @@ class TwitterPoster:
             self.keys.access_token,
             self.keys.access_token_secret)
         api = tweepy.API(auth)
+        client = tweepy.Client(
+            consumer_key=self.keys.consumer_key,
+            consumer_secret=self.keys.consumer_secret_key,
+            access_token=self.keys.access_token,
+            access_token_secret=self.keys.access_token_secret)
 
         hashtags = ' '.join([f'#{tag}' for tag in tags])
+        print(f'Posting "{status}" with tags {hashtags}')
 
         image.show()
         with io.BytesIO() as output:
             image.save(output, format='PNG')
             output.seek(0)
             media = api.media_upload(None, file=output)
-            api.update_status(status='\n'.join(
+            client.create_tweet(text='\n'.join(
                 [status, hashtags]), media_ids=[media.media_id])
-
-
-def __days_since_epoch():
-    return (datetime.utcnow() - datetime(1970, 1, 1)).days
-
-
-def __random_choice(choices: List[str]) -> str:
-    r = random.Random(__days_since_epoch())
-    return r.choice(choices)
