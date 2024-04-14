@@ -39,7 +39,7 @@ export class MountainController {
               name: file.name,
               datetime: this.formatter.format(
                 new Date(
-                  file.name.replace('MountRainier-', '').replace('.png', ''),
+                  file.name.replace('MountRainier-', '').replace('_', ':').replace('.png', ''),
                 ),
               ),
             };
