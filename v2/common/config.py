@@ -3,7 +3,7 @@ def mountain_history_bucket_name() -> str:
 
 
 def mountain_history_filename_template() -> str:
-    return 'MountRainier-%Y-%m-%dT%H:%M:%S'
+    return 'MountRainier-%Y-%m-%dT%H_%M_%S'
 
 
 def classification_bucket_name() -> str:
