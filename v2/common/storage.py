@@ -43,3 +43,6 @@ class GcpBucketStorage(Storage):
     def get_image(self, filename: str) -> Image.Image:
         blob = self.get(filename)
         return Image.open(BytesIO(blob.download_as_bytes()))
+
+    def rename(self, blob: storage.Blob, *, name: str) -> None:
+        self.bucket.rename_blob(blob, name)

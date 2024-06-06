@@ -1,7 +1,0 @@
-*logs/*
-
-# only keep the chosen model
-*.h5
-
-# dont allow storing credentials
-isthemountainout-*.json
