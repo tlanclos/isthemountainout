@@ -30,6 +30,8 @@ parser.add_argument(
     '--local-weights', help='Set this flag to the path for the local weights filename, unset will load weights from cloud storage')
 parser.add_argument('--snapshot-timestamp',
                     help='Set this flag to the snapshot timestamp to use for classification')
+parser.add_argument(
+    '--dry-run', action='store_true', help='Classify the image and print to the console, but nothing is committed')
 
 PACIFIC_TIMEZONE = pytz.timezone('US/Pacific')
 
@@ -264,14 +266,18 @@ def main(request):
 
     if classification_tracker.should_post(classification.classification):
         classification.was_posted = True
-        classification_tracker.amend(classification)
-        twitter = TwitterPoster(keys=TwitterApiKeys.from_storage())
-        twitter.post(
-            status=twitter.status_for_label(classification.classification),
-            image=twitter.brand_image(image),
-            tags=twitter.tags_for_label(classification.classification))
+        print(f'Posting {classification}')
+        if not args.dry_run:
+            classification_tracker.amend(classification)
+            twitter = TwitterPoster(keys=TwitterApiKeys.from_storage())
+            twitter.post(
+                status=twitter.status_for_label(classification.classification),
+                image=twitter.brand_image(image),
+                tags=twitter.tags_for_label(classification.classification))
     else:
-        classification_tracker.amend(classification)
+        print(f'Classification did not change from {classification}')
+        if not args.dry_run:
+            classification_tracker.amend(classification)
 
     return make_response((json.dumps({
         'date': classification.date.isoformat(),
@@ -289,5 +295,6 @@ if __name__ == '__main__':
                 'source': args.source,
                 'local_weights': args.local_weights,
                 'snapshot_timestamp': args.snapshot_timestamp,
+                'dry_run': args.dry_run,
             }
     main(FakeRequest())

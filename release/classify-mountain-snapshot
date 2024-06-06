@@ -1,0 +1,5 @@
+#!/bin/bash
+
+source  /opt/mountain/classify/_venv
+pushd /opt/mountain/classify
+python main.py

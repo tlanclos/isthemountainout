@@ -6,7 +6,7 @@ google-cloud-storage==2.6.0
 pytz==2022.6
 pillow==9.3.0
 google-api-python-client==2.68.0
-tensorflow==2.10.1
+tensorflow==2.16.1
 flask==2.2.2
 tweepy==4.14.0
 astral==3.2
