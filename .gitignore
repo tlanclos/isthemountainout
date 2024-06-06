@@ -1,7 +1,16 @@
+deploy
+deploy/*
+isthemountainout*.json
+isthemountainout*.h5*
+noarch
+noarch/*
+dataset
+dataset/*
+.DS_Store
+
 *.jpg
 *.png
 *.pyc
 
 .vscode/*
 *.ipynb_checkpoints
-.DS_Store
