@@ -4,6 +4,7 @@ import tensorflow as tf
 import numpy as np
 import json
 import pytz
+import sqlite3
 
 from astral import LocationInfo
 from astral.sun import sun
@@ -48,11 +49,14 @@ parser.add_argument(
     default=ImageSource.SNAPSHOT.value,
     help='Source image provider')
 parser.add_argument(
+    '--snapshot-timestamp',
+    help='Set this flag to the snapshot timestamp to use for classification')
+parser.add_argument(
     '--local-weights',
     help='Set this flag to the path for the local weights filename, unset will load weights from cloud storage')
 parser.add_argument(
-    '--snapshot-timestamp',
-    help='Set this flag to the snapshot timestamp to use for classification')
+    '--local-tracker-db',
+    help='Set this flag to the path for the SQLite database that tracks mountain classifications')
 parser.add_argument(
     '--dry-run',
     action='store_true',
@@ -115,15 +119,83 @@ class Classifier:
 
 
 class ClassificationTracker:
-    spreadsheet_id = '1nMkjiqMvsOhj-ljEab2aBvNWy3bJXdot3u2vRXsyI5Q'
-    spreadsheet_sheet_name = 'StateV2'
-    spreadsheet_range = f'{spreadsheet_sheet_name}!A2:C'
     notable_transitions = {
         Label.NIGHT: {Label.HIDDEN, Label.MYSTICAL, Label.BEAUTIFUL},
         Label.HIDDEN: {Label.MYSTICAL, Label.BEAUTIFUL},
         Label.MYSTICAL: {Label.BEAUTIFUL},
         Label.BEAUTIFUL: {Label.HIDDEN},
     }
+
+    def amend(self, classification: ClassificationRow):
+        pass
+
+    def read_latest(self, *, count: int) -> List[ClassificationRow]:
+        pass
+
+    def should_post(self, classification: Label) -> bool:
+        last_classification = self._read_last_notable_classification()
+        new_classification_is_notable = classification in ClassificationTracker.notable_transitions[
+            last_classification]
+        will_classification_settle = self._will_classification_settle_with(
+            classification)
+        if not new_classification_is_notable and not will_classification_settle:
+            print(
+                f'Classification will not post because {classification} is not notable from {last_classification} and will not settle')
+            return False
+        elif not new_classification_is_notable:
+            print(
+                f'Classification will not post because {classification} is not notable from {last_classification}')
+            return False
+        elif not will_classification_settle:
+            print(
+                f'Classification will not post because it will not settle with the new classification, {classification}')
+            return False
+        else:
+            print(
+                f'Classification will post because {classification} is notable from {last_classification} and will settle with the new classification')
+            return True
+
+    def _will_classification_settle_with(self, classification: Label) -> bool:
+        history = [c.classification for c in self.read_latest(count=2)]
+        will_it_settle = all(c == classification for c in history)
+        next_history = [c.value for c in [*history, classification]]
+        if will_it_settle:
+            print(
+                f'Classification chain {" -> ".join(next_history)} has settled')
+        else:
+            print(
+                f'Classification chain {" -> ".join(next_history)} has not settled')
+        return will_it_settle
+
+    def _read_last_notable_classification(self) -> Label:
+        """
+        Find which classification in the classification history is considered "notable".
+        That means that the classification happened on the same day and was posted. Classifications
+        that happen at night are considered the reset zone so mountain classifications will always
+        be posted the next day.
+        """
+        yesterday = datetime.now(PACIFIC_TIMEZONE).date() - \
+            timedelta(days=1)
+
+        # Search back 100 (around 2 days) rows to see when the last posted
+        # classification was and take that as the last classification.
+        for row in reversed(self.read_latest(count=100)):
+            if row.was_posted or row.classification == Label.NIGHT:
+                return row.classification
+            elif row.date.date() == yesterday:
+                print(
+                    f'Post not found since yesterday, assuming {Label.NIGHT}')
+                return Label.NIGHT
+
+        # If there has been no posts or night found, just assume that there was
+        # night at some point
+        return Label.NIGHT
+
+
+class GoogleSheetsClassificationTracker(ClassificationTracker):
+    spreadsheet_id = '1nMkjiqMvsOhj-ljEab2aBvNWy3bJXdot3u2vRXsyI5Q'
+    spreadsheet_sheet_name = 'StateV2'
+    spreadsheet_range = f'{spreadsheet_sheet_name}!A2:C'
     service: Resource
 
     def __init__(self) -> None:
@@ -173,67 +245,7 @@ class ClassificationTracker:
             }
         ).execute()
 
-    def should_post(self, classification: Label) -> bool:
-        last_classification = self.read_last_notable_classification()
-        new_classification_is_notable = classification in ClassificationTracker.notable_transitions[
-            last_classification]
-        will_classification_settle = self.will_classification_settle_with(
-            classification)
-        if not new_classification_is_notable and not will_classification_settle:
-            print(
-                f'Classification will not post because {classification} is not notable from {last_classification} and will not settle')
-            return False
-        elif not new_classification_is_notable:
-            print(
-                f'Classification will not post because {classification} is not notable from {last_classification}')
-            return False
-        elif not will_classification_settle:
-            print(
-                f'Classification will not post because it will not settle with the new classification, {classification}')
-            return False
-        else:
-            print(
-                f'Classification will post because {classification} is notable from {last_classification} and will settle with the new classification')
-            return True
-
-    def will_classification_settle_with(self, classification: Label) -> bool:
-        history = [
-            c.classification for c in self.__read_latest_classifications(count=2)]
-        will_it_settle = all(c == classification for c in history)
-        next_history = [c.value for c in [*history, classification]]
-        if will_it_settle:
-            print(
-                f'Classification chain {" -> ".join(next_history)} has settled')
-        else:
-            print(
-                f'Classification chain {" -> ".join(next_history)} has not settled')
-        return will_it_settle
-
-    def read_last_notable_classification(self) -> Label:
-        """
-        Find which classification in the classification history is considered "notable".
-        That means that the classification happened on the same day and was posted. Classifications
-        that happen at night are considered the reset zone so mountain classifications will always
-        be posted the next day.
-        """
-        yesterday = datetime.now(PACIFIC_TIMEZONE).date() - \
-            timedelta(days=1)
-
-        # Search back 100 (around 2 days) rows to see when the last posted
-        # classification was and take that as the last classification.
-        for row in reversed(self.__read_latest_classifications(count=100)):
-            if row.was_posted or row.classification == Label.NIGHT:
-                return row.classification
-            elif row.date.date() == yesterday:
-                print(
-                    f'Post not found since yesterday, assuming {Label.NIGHT}')
-                return Label.NIGHT
-
-        # If there has been no posts or night found, just assume that there was
-        # night at some point
-        return Label.NIGHT
-
-    def __read_latest_classifications(self, *, count: int) -> List[ClassificationRow]:
+    def read_latest(self, *, count: int) -> List[ClassificationRow]:
         range = self.__get_latest_classification_range()
         response = self.service.spreadsheets().values().get(
             spreadsheetId=ClassificationTracker.spreadsheet_id,
@@ -261,6 +273,63 @@ class ClassificationTracker:
         return RangeData(response.get('updates', {}).get('updatedRange', ''))
 
 
+class SqliteClassificationTracker(ClassificationTracker):
+    _CLASSIFICATIONS_TABLE_NAME = 'classifications'
+
+    connection: sqlite3.Connection
+
+    def __init__(self, *, path: str) -> None:
+        self.connection = sqlite3.connect(path)
+        self.__create_database()
+
+    def amend(self, classification: ClassificationRow):
+        cursor = self.connection.cursor()
+        table_name = SqliteClassificationTracker._CLASSIFICATIONS_TABLE_NAME
+        cursor.execute(
+            f"INSERT INTO {table_name} (classification_time, classification, was_posted) VALUES (?, ?, ?);",
+            (classification.date, classification.classification.value, classification.was_posted))
+        cursor.fetchall()
+        cursor.close()
+
+    def read_latest(self, *, count: int) -> List[ClassificationRow]:
+        cursor = self.connection.cursor()
+        table_name = SqliteClassificationTracker._CLASSIFICATIONS_TABLE_NAME
+        cursor.execute(
+            f"""
+            SELECT classification_time, classification, was_posted
+            FROM {table_name}
+            ORDER BY classification_time DESC
+            LIMIT ?
+            """, (count,))
+
+        rows: List[ClassificationRow] = []
+        for row in cursor.fetchall():
+            rows.append(ClassificationRow(
+                date=row[0], classification=row[1], was_posted=row[2]))
+        cursor.close()
+        return rows
+
+    def __create_database(self):
+        if self.__table_exists(SqliteClassificationTracker._CLASSIFICATIONS_TABLE_NAME):
+            self.__create_classifications_table(
+                SqliteClassificationTracker._CLASSIFICATIONS_TABLE_NAME)
+
+    def __table_exists(self, *, table_name: str) -> bool:
+        cursor = self.connection.cursor()
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?;", (table_name,))
+        rows = cursor.rowcount > 0
+        cursor.close()
+        return rows
+
+    def __create_classifications_table(self, *, table_name: str) -> None:
+        cursor = self.connection.cursor()
+        cursor.execute(
+            f"CREATE TABLE {table_name} (classification_time DATETIME, classification TEXT, was_posted BOOLEAN);")
+        cursor.fetchall()
+        cursor.close()
+
+
 def main(request):
     req = request.json
     classifier = Classifier(
@@ -269,7 +338,10 @@ def main(request):
         local_weights=req.get('local_weights', None))
     classification, image = classifier.classify_next()
     print('Classification', classification)
-    classification_tracker = ClassificationTracker()
+
+    local_tracker_db = req.get('local_tracker_db', None)
+    classification_tracker = SqliteClassificationTracker(
+        path=local_tracker_db) if local_tracker_db else GoogleSheetsClassificationTracker()
 
     if classification_tracker.should_post(classification.classification):
         classification.was_posted = True
@@ -300,8 +372,9 @@ if __name__ == '__main__':
         def json(self):
             return {
                 'source': args.source,
-                'local_weights': args.local_weights,
                 'snapshot_timestamp': args.snapshot_timestamp,
+                'local_weights': args.local_weights,
+                'local_tracker_db': args.local_tracker_db,
                 'dry_run': args.dry_run,
             }
     main(FakeRequest())
