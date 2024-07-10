@@ -10,7 +10,7 @@ from astral.sun import sun
 from common.config import model_bucket_name
 from common.image import LatestSnapshotImageProvider, SpaceNeedleImageProvider, ImageProvider, TimestampedSnapshotImageProvider
 from common.frozenmodel import generate_model, labels, Label
-from common.storage import GcpBucketStorage
+from common.storage import GcpBucketStorage, Storage
 from common.weights import weights
 from common.sheets import ClassificationRow, RangeData
 from common.twitter import TwitterApiKeys, TwitterPoster
@@ -44,7 +44,7 @@ class Classifier:
         latitude=47.6209673,
         longitude=-122.348993
     )
-    model_bucket: GcpBucketStorage
+    model_bucket: Storage
     image_source: str
     local_weights: Optional[str]
     snapshot_timestamp: Optional[str]

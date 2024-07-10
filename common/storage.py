@@ -1,17 +1,43 @@
+import os
 from io import BytesIO
 from PIL import Image
+from datetime import datetime
 from google.cloud import storage
+from common.config import mountain_history_filename_template
 from typing import List
+
+
+class File:
+    def read(self) -> bytes:
+        pass
+
+    def date(self) -> datetime:
+        pass
+
+
+class GcpFile(File):
+    blob: storage.Blob
+
+    def __init__(self, *, blob: storage.Blob) -> None:
+        self.blob = blob
+
+    def read(self) -> bytes:
+        return self.blob.download_as_string()
+
+    def date(self) -> datetime:
+        return datetime.strptime(
+            os.path.splitext(self.blob.name)[0],
+            mountain_history_filename_template())
 
 
 class Storage:
     def save_image(self, image: Image.Image, *, filename: str):
         pass
 
-    def list_files(self, directory) -> List[storage.Blob]:
+    def list_files(self, directory) -> List[File]:
         pass
 
-    def get(self, filename: str) -> storage.Blob:
+    def get(self, filename: str) -> File:
         pass
 
     def get_image(self, filename: str) -> Image.Image:
@@ -34,11 +60,11 @@ class GcpBucketStorage(Storage):
         image.save(imagefile, format='PNG')
         blob.upload_from_string(imagefile.getvalue())
 
-    def list_files(self, directory: str) -> List[storage.Blob]:
-        return list(self.client.list_blobs(self.bucket_name, prefix=directory))
+    def list_files(self, directory: str) -> List[File]:
+        return [GcpFile(blob=blob) for blob in self.client.list_blobs(self.bucket_name, prefix=directory)]
 
-    def get(self, filename: str) -> storage.Blob:
-        return self.bucket.get_blob(filename)
+    def get(self, filename: str) -> File:
+        return GcpFile(blob=self.bucket.get_blob(filename))
 
     def get_image(self, filename: str) -> Image.Image:
         blob = self.get(filename)
