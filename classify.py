@@ -368,7 +368,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     class FakeRequest:
-        @ property
+        @property
         def json(self):
             return {
                 'source': args.source,
