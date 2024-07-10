@@ -15,6 +15,7 @@ jobs:
       with:
         load: true
         tags: isthemountainout:latest
+        outputs: type=registry,name=tlanclos/isthemountainout
     - name: Inspect
       run: |
         docker image inspect isthemountainout:latest
