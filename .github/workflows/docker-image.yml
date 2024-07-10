@@ -14,8 +14,8 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         load: true
-        tags: isthemountainout:latest
-        outputs: type=registry,name=tlanclos/isthemountainout
+        push: true
+        tags: tlanclos/isthemountainout:latest
     - name: Inspect
       run: |
         docker image inspect isthemountainout:latest
