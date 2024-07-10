@@ -7,14 +7,13 @@ import pytz
 
 from astral import LocationInfo
 from astral.sun import sun
-from common.config import model_bucket_name
 from common.image import LatestSnapshotImageProvider, SpaceNeedleImageProvider, ImageProvider, TimestampedSnapshotImageProvider
 from common.frozenmodel import generate_model, labels, Label
-from common.storage import GcpBucketStorage, Storage
 from common.weights import weights
 from common.sheets import ClassificationRow, RangeData
 from common.twitter import TwitterApiKeys, TwitterPoster
 from datetime import datetime, timedelta
+from enum import Enum
 from googleapiclient.discovery import build as build_api, Resource
 from PIL import Image
 from typing import Optional, Tuple, List
@@ -22,16 +21,42 @@ from flask import make_response
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
+
+class ImageSource(Enum):
+    LIVE = 'live'
+    SNAPSHOT = 'snapshot'
+
+    def provider(self, *, snapshot_timestamp: Optional[str] = None) -> ImageProvider:
+        if self == ImageSource.LIVE:
+            return SpaceNeedleImageProvider()
+        elif self == ImageSource.SNAPSHOT:
+            if snapshot_timestamp is not None:
+                return TimestampedSnapshotImageProvider(
+                    timestamp=datetime.strptime(snapshot_timestamp, '%Y-%m-%dT%H:%M:%S'))
+            else:
+                return LatestSnapshotImageProvider()
+        else:
+            print(f'Unknown image source {self}')
+            raise Exception(f'Unknown image source {self}')
+
+
 parser = argparse.ArgumentParser(
     description='Classify an image of Mount Rainier')
-parser.add_argument('source', choices=[
-                    'live', 'snapshot'], help='Source image provider')
 parser.add_argument(
-    '--local-weights', help='Set this flag to the path for the local weights filename, unset will load weights from cloud storage')
-parser.add_argument('--snapshot-timestamp',
-                    help='Set this flag to the snapshot timestamp to use for classification')
+    'source',
+    choices=[ImageSource.LIVE.value, ImageSource.SNAPSHOT.value],
+    default=ImageSource.SNAPSHOT.value,
+    help='Source image provider')
 parser.add_argument(
-    '--dry-run', action='store_true', help='Classify the image and print to the console, but nothing is committed')
+    '--local-weights',
+    help='Set this flag to the path for the local weights filename, unset will load weights from cloud storage')
+parser.add_argument(
+    '--snapshot-timestamp',
+    help='Set this flag to the snapshot timestamp to use for classification')
+parser.add_argument(
+    '--dry-run',
+    action='store_true',
+    help='Classify the image and print to the console, but nothing is committed')
 
 PACIFIC_TIMEZONE = pytz.timezone('US/Pacific')
 
@@ -44,16 +69,12 @@ class Classifier:
         latitude=47.6209673,
         longitude=-122.348993
     )
-    model_bucket: Storage
-    image_source: str
+    image_provider: ImageProvider
     local_weights: Optional[str]
-    snapshot_timestamp: Optional[str]
 
-    def __init__(self, *, image_source: str, local_weights: Optional[str] = None, snapshot_timestamp: Optional[str] = None):
-        self.model_bucket = GcpBucketStorage(bucket_name=model_bucket_name())
-        self.image_source = image_source
+    def __init__(self, *, image_provider: ImageProvider, local_weights: Optional[str] = None):
+        self.image_provider = image_provider
         self.local_weights = local_weights
-        self.snapshot_timestamp = snapshot_timestamp
 
     def _load_model(self):
         with weights(local_filename=self.local_weights) as filepath:
@@ -68,8 +89,7 @@ class Classifier:
         return labels()[np.argmax(score, axis=1)[0]]
 
     def classify_next(self) -> Tuple[ClassificationRow, Image.Image]:
-        image_provider = self._get_image_provider(self.image_source)
-        image, date = image_provider.get()
+        image, date = self.image_provider.get()
 
         print(f'Classifying image for date {date}')
         classification = self.classify(image=image)
@@ -92,19 +112,6 @@ class Classifier:
         info = sun(Classifier.seattle.observer, date=datetime(
             year=date.year, month=date.month, day=date.day, tzinfo=PACIFIC_TIMEZONE))
         return date < info['dawn'] or date > info['dusk']
-
-    def _get_image_provider(self, source: str) -> ImageProvider:
-        if source == 'live':
-            return SpaceNeedleImageProvider()
-        elif source == 'snapshot':
-            if self.snapshot_timestamp is not None:
-                return TimestampedSnapshotImageProvider(
-                    timestamp=datetime.strptime(self.snapshot_timestamp, '%Y-%m-%dT%H:%M:%S'))
-            else:
-                return LatestSnapshotImageProvider()
-        else:
-            print(f'Unknown image source {source}')
-            raise Exception(f'Unknown image source {source}')
 
 
 class ClassificationTracker:
@@ -257,9 +264,9 @@ class ClassificationTracker:
 def main(request):
     req = request.json
     classifier = Classifier(
-        image_source=req.get('source', 'snapshot'),
-        local_weights=req.get('local_weights', None),
-        snapshot_timestamp=req.get('snapshot_timestamp', None))
+        image_provider=ImageSource(req.get('source')).provider(
+            snapshot_timestamp=req.get('snapshot_timestamp', None)),
+        local_weights=req.get('local_weights', None))
     classification, image = classifier.classify_next()
     print('Classification', classification)
     classification_tracker = ClassificationTracker()
