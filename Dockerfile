@@ -42,8 +42,13 @@ RUN unzip classify.zip
 RUN python3 -m virtualenv _venv
 RUN _venv/bin/pip install -r requirements.txt
 
-RUN chmod a+x /usr/local/bin/*-mountain-snapshot
+# Cleanup post installation
+#==========================
+RUN rm -rf /opt/mountain/build
 
+# Copy over snapshotting tools
+#=============================
+RUN chmod a+x /usr/local/bin/*-mountain-snapshot
 COPY release/99-mountain-cron /etc/crontab
 
 CMD cron
