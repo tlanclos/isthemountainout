@@ -8,11 +8,16 @@ from typing import List
 
 
 class File:
+    def filename() -> str:
+        pass
+
     def read(self) -> bytes:
         pass
 
     def date(self) -> datetime:
-        pass
+        return datetime.strptime(
+            os.path.splitext(self.blob.name)[0],
+            mountain_history_filename_template())
 
 
 class GcpFile(File):
@@ -21,13 +26,25 @@ class GcpFile(File):
     def __init__(self, *, blob: storage.Blob) -> None:
         self.blob = blob
 
+    def filename(self) -> str:
+        return self.blob.name
+
     def read(self) -> bytes:
         return self.blob.download_as_string()
 
-    def date(self) -> datetime:
-        return datetime.strptime(
-            os.path.splitext(self.blob.name)[0],
-            mountain_history_filename_template())
+
+class LocalFile(File):
+    filepath: str
+
+    def __init__(self, *, filepath: str) -> None:
+        self.filepath = filepath
+
+    def filename(self) -> str:
+        return os.path.basename(self.filepath)
+
+    def read(self) -> bytes:
+        with open(self.filepath, 'rb') as f:
+            return f.read()
 
 
 class Storage:
@@ -41,7 +58,8 @@ class Storage:
         pass
 
     def get_image(self, filename: str) -> Image.Image:
-        pass
+        f = self.get(filename)
+        return Image.open(BytesIO(f.read()))
 
 
 class GcpBucketStorage(Storage):
@@ -66,9 +84,19 @@ class GcpBucketStorage(Storage):
     def get(self, filename: str) -> File:
         return GcpFile(blob=self.bucket.get_blob(filename))
 
-    def get_image(self, filename: str) -> Image.Image:
-        blob = self.get(filename)
-        return Image.open(BytesIO(blob.download_as_bytes()))
 
-    def rename(self, blob: storage.Blob, *, name: str) -> None:
-        self.bucket.rename_blob(blob, name)
+class LocalFileStorage(Storage):
+    base_path: str
+
+    def __init__(self, *, base_path: str) -> None:
+        self.base_path = base_path
+
+    def save_image(self, image: Image.Image, *, filename: str):
+        with open(os.path.join(self.base_path, filename), 'w') as f:
+            image.save(f, format='PNG')
+
+    def list_files(self, directory) -> List[File]:
+        return [LocalFile(os.path.join(self.base_path, filename)) for filename in os.listdir(directory)]
+
+    def get(self, filename: str) -> File:
+        return LocalFile(filepath=os.path.join(self.base_path, filename))
