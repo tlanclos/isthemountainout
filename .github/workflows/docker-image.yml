@@ -21,13 +21,10 @@ jobs:
         registry: ghcr.io
         username: ${{ github.repository_owner }}
         password: ${{ secrets.GITHUB_TOKEN }}
-    - name: Build and push
+    - name: Build
       uses: docker/build-push-action@v6
       with:
-        push: true
-        tags: |
-          tlanclos/isthemountainout:latest
-          tlanclos/isthemountainout:0.9.0
+        load: true
     - name: Push image to GHCR
       run: |
         docker buildx imagetools create \
