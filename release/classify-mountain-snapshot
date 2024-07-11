@@ -1,5 +1,10 @@
 #!/bin/bash
 
-source  /opt/mountain/classify/_venv
+source  /opt/mountain/classify/_venv/bin/activate
 pushd /opt/mountain/classify
-# python main.py
+python main.py \
+  --dry-run \
+  --local-weights="" \
+  --local-tracker-db="" \
+  snapshot disk \
+  --path=""

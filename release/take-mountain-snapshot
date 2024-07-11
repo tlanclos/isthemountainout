@@ -1,5 +1,5 @@
 #!/bin/bash
 
-source  /opt/mountain/snapshot/_venv
+source  /opt/mountain/snapshot/_venv/bin/activate
 pushd /opt/mountain/snapshot
 python main.py local --local-output-path=/snapshots
