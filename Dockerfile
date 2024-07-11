@@ -51,4 +51,4 @@ RUN rm -rf /opt/mountain/build
 RUN chmod a+x /usr/local/bin/*-mountain-snapshot
 COPY release/99-mountain-cron /etc/crontab
 
-CMD cron
+CMD ["cron", "-f"]
