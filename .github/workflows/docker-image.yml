@@ -48,6 +48,6 @@ jobs:
     - name: Delete old artifacts
       uses: actions/delete-package-versions@v5
       with:
-        pakcage-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
+        package-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
         package-type: container
         min-versions-to-keep: 3
