@@ -45,3 +45,9 @@ jobs:
         subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
         subject-digest: ${{ steps.push.outputs.digest }}
         push-to-registry: true
+    - name: Delete old artifacts
+      uses: actions/delete-package-versions@v5
+      with:
+        pakcage-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
+        package-type: container
+        min-versions-to-keep: 3
