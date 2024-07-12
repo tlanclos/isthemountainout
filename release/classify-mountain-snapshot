@@ -4,7 +4,7 @@ source  /opt/mountain/classify/_venv/bin/activate
 pushd /opt/mountain/classify
 python main.py \
   --dry-run \
-  --local-weights="" \
-  --local-tracker-db="" \
-  snapshot disk \
-  --path=""
+  --local-weights="/config/weights.h5" \
+  --local-tracker-db="/config/tracker.db" \
+  disk-snapshot \
+  --path="/snapshots"

@@ -7,7 +7,7 @@ from typing import Tuple, Dict, Iterator, Optional
 from google.cloud import storage as gstorage
 from urllib.parse import urlparse
 from common.config import brand_bucket_name, brand_filename, mountain_history_bucket_name, classification_bucket_name, classification_filename
-from common.storage import GcpBucketStorage
+from common.storage import GcpBucketStorage, Storage, LocalFileStorage
 from io import BytesIO
 import requests
 from PIL import Image
@@ -57,7 +57,7 @@ class SpaceNeedleImageProvider(ImageProvider):
 
 
 class TimestampedSnapshotImageProvider(ImageProvider):
-    storage: GcpBucketStorage
+    storage: Storage
     timestamp: Optional[datetime]
 
     def _image_file(self) -> Tuple[gstorage.Blob, datetime]:
@@ -74,9 +74,12 @@ class TimestampedSnapshotImageProvider(ImageProvider):
             blob = blobs[index]
             return blob, self._date_of_blob(blob)
 
-    def __init__(self, *, timestamp: Optional[datetime] = None):
-        self.storage = GcpBucketStorage(
-            bucket_name=mountain_history_bucket_name())
+    def __init__(self, *, timestamp: Optional[datetime] = None, from_disk_path: Optional[str] = None):
+        if from_disk_path:
+            self.storage = LocalFileStorage(base_path=from_disk_path)
+        else:
+            self.storage = GcpBucketStorage(
+                bucket_name=mountain_history_bucket_name())
         self.timestamp = timestamp
 
     def get(self) -> Tuple[Image.Image, Date]:
@@ -85,8 +88,8 @@ class TimestampedSnapshotImageProvider(ImageProvider):
 
 
 class LatestSnapshotImageProvider(TimestampedSnapshotImageProvider):
-    def __init__(self):
-        super().__init__(timestamp=None)
+    def __init__(self, from_disk_path: Optional[str] = None):
+        super().__init__(timestamp=None, from_disk_path=from_disk_path)
 
 
 class Classification:

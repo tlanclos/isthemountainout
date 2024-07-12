@@ -25,17 +25,22 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 class ImageSource(Enum):
     LIVE = 'live'
-    SNAPSHOT = 'snapshot'
+    CLOUD_SNAPSHOT = 'cloud-snapshot'
+    DISK_SNAPSHOT = 'disk-snapshot'
 
-    def provider(self, *, snapshot_timestamp: Optional[str] = None) -> ImageProvider:
+    def provider(self, *,
+                 snapshot_timestamp: Optional[str] = None,
+                 disk_snapshot_path: Optional[str] = None) -> ImageProvider:
         if self == ImageSource.LIVE:
             return SpaceNeedleImageProvider()
-        elif self == ImageSource.SNAPSHOT:
+        elif self in (ImageSource.CLOUD_SNAPSHOT, ImageSource.DISK_SNAPSHOT):
             if snapshot_timestamp is not None:
                 return TimestampedSnapshotImageProvider(
-                    timestamp=datetime.strptime(snapshot_timestamp, '%Y-%m-%dT%H:%M:%S'))
+                    timestamp=datetime.strptime(
+                        snapshot_timestamp, '%Y-%m-%dT%H:%M:%S'),
+                    from_disk_path=disk_snapshot_path)
             else:
-                return LatestSnapshotImageProvider()
+                return LatestSnapshotImageProvider(from_disk_path=disk_snapshot_path)
         else:
             print(f'Unknown image source {self}')
             raise Exception(f'Unknown image source {self}')
@@ -43,24 +48,41 @@ class ImageSource(Enum):
 
 parser = argparse.ArgumentParser(
     description='Classify an image of Mount Rainier')
+subparsers = parser.add_subparsers(dest='source')
+
 parser.add_argument(
-    'source',
-    choices=[ImageSource.LIVE.value, ImageSource.SNAPSHOT.value],
-    default=ImageSource.SNAPSHOT.value,
-    help='Source image provider')
-parser.add_argument(
-    '--snapshot-timestamp',
-    help='Set this flag to the snapshot timestamp to use for classification')
+    '--dry-run',
+    action='store_true',
+    help='Classify the image and print to the console, but nothing is committed')
 parser.add_argument(
     '--local-weights',
     help='Set this flag to the path for the local weights filename, unset will load weights from cloud storage')
 parser.add_argument(
     '--local-tracker-db',
     help='Set this flag to the path for the SQLite database that tracks mountain classifications')
-parser.add_argument(
-    '--dry-run',
-    action='store_true',
-    help='Classify the image and print to the console, but nothing is committed')
+
+live_parser = subparsers.add_parser(
+    ImageSource.LIVE.value,
+    help='Classify an image directly from the space needle camera')
+cloud_snapshot_parser = subparsers.add_parser(
+    ImageSource.CLOUD_SNAPSHOT.value,
+    help='Classify an image from a snapshot using the cloud image provider')
+disk_snapshot_parser = subparsers.add_parser(
+    ImageSource.DISK_SNAPSHOT.value,
+    help='Classify an image from a snapshot using the disk-based image provider')
+
+cloud_snapshot_parser.add_argument(
+    '--snapshot-timestamp',
+    help='Set this flag to the snapshot timestamp to use for classification')
+
+disk_snapshot_parser.add_argument(
+    '--snapshot-timestamp',
+    help='Set this flag to the snapshot timestamp to use for classification')
+disk_snapshot_parser.add_argument(
+    '--path',
+    required=True,
+    dest='disk_snapshot_path',
+    help='Sets the path for where the snapshots are given')
 
 PACIFIC_TIMEZONE = pytz.timezone('US/Pacific')
 
@@ -334,7 +356,8 @@ def main(request):
     req = request.json
     classifier = Classifier(
         image_provider=ImageSource(req.get('source')).provider(
-            snapshot_timestamp=req.get('snapshot_timestamp', None)),
+            snapshot_timestamp=req.get('snapshot_timestamp', None),
+            disk_snapshot_path=req.get('disk_snapshot_path', None))
         local_weights=req.get('local_weights', None))
     classification, image = classifier.classify_next()
     print('Classification', classification)
@@ -375,6 +398,7 @@ if __name__ == '__main__':
                 'snapshot_timestamp': args.snapshot_timestamp,
                 'local_weights': args.local_weights,
                 'local_tracker_db': args.local_tracker_db,
+                'disk_snapshot_path': args.disk_snapshot_path,
                 'dry_run': args.dry_run,
             }
     main(FakeRequest())

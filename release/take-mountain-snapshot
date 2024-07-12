@@ -2,4 +2,4 @@
 
 source  /opt/mountain/snapshot/_venv/bin/activate
 pushd /opt/mountain/snapshot
-python main.py local --local-output-path=/snapshots
+python main.py local --local-output-path="/snapshots"
