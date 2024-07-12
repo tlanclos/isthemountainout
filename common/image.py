@@ -63,11 +63,11 @@ class TimestampedSnapshotImageProvider(ImageProvider):
     def _image_file(self) -> Tuple[gstorage.Blob, datetime]:
         if self.timestamp is None:
             blob = next(
-                reversed(sorted(self.storage.list_files(''), key=lambda f: f.date())))
+                reversed(sorted(self.storage.list_files('.'), key=lambda f: f.date())))
             return blob, self._date_of_blob(blob)
         else:
             blobs = list(
-                sorted(self.storage.list_files(''), key=lambda f: f.date()))
+                sorted(self.storage.list_files('.'), key=lambda f: f.date()))
             timestamps = [self._date_of_blob(blob) for blob in blobs]
             index = max(0, min(len(timestamps) - 1,
                         bisect(timestamps, self.timestamp)))

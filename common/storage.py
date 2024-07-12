@@ -51,7 +51,7 @@ class Storage:
     def save_image(self, image: Image.Image, *, filename: str):
         pass
 
-    def list_files(self, directory) -> List[File]:
+    def list_files(self, directory: str) -> List[File]:
         pass
 
     def get(self, filename: str) -> File:
@@ -79,7 +79,9 @@ class GcpBucketStorage(Storage):
         blob.upload_from_string(imagefile.getvalue())
 
     def list_files(self, directory: str) -> List[File]:
-        return [GcpFile(blob=blob) for blob in self.client.list_blobs(self.bucket_name, prefix=directory)]
+        return [
+            GcpFile(blob=blob) for blob in self.client.list_blobs(self.bucket_name, prefix=directory.lstrip('./'))
+        ]
 
     def get(self, filename: str) -> File:
         return GcpFile(blob=self.bucket.get_blob(filename))
@@ -95,7 +97,7 @@ class LocalFileStorage(Storage):
         with open(os.path.join(self.base_path, filename), 'w') as f:
             image.save(f, format='PNG')
 
-    def list_files(self, directory) -> List[File]:
+    def list_files(self, directory: str) -> List[File]:
         return [LocalFile(os.path.join(self.base_path, filename)) for filename in os.listdir(directory)]
 
     def get(self, filename: str) -> File:
