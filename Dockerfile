@@ -1,6 +1,8 @@
 FROM ubuntu:latest AS build
 
-RUN apt-get update && apt-get -y install cron python3 python3-pip python3-virtualenv unzip libjpeg-dev zlib1g-dev
+RUN apt-get update && apt-get -y install cron python3 \
+  python3-pip python3-virtualenv unzip libjpeg-turbo8-dev \
+  zlib1g-dev pkg-config libhdf5-dev
 
 # Build files and create deployments
 #===================================
@@ -42,7 +44,7 @@ RUN _venv/bin/pip install -r requirements.txt
 #=======================
 FROM ubuntu:latest
 
-RUN apt-get update && apt-get -y install python3 curl
+RUN apt-get update && apt-get -y install python3 curl libjpeg-turbo8 zlib1g
 
 # Install Supercronic
 #====================
