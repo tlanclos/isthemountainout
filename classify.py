@@ -357,7 +357,7 @@ def main(request):
     classifier = Classifier(
         image_provider=ImageSource(req.get('source')).provider(
             snapshot_timestamp=req.get('snapshot_timestamp', None),
-            disk_snapshot_path=req.get('disk_snapshot_path', None))
+            disk_snapshot_path=req.get('disk_snapshot_path', None)),
         local_weights=req.get('local_weights', None))
     classification, image = classifier.classify_next()
     print('Classification', classification)
