@@ -16,7 +16,7 @@ class File:
 
     def date(self) -> datetime:
         return datetime.strptime(
-            os.path.splitext(self.blob.name)[0],
+            os.path.splitext(self.filename())[0],
             mountain_history_filename_template())
 
 
