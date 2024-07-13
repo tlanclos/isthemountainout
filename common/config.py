@@ -9,6 +9,9 @@ from common.storage import LocalFile, LocalFileStorage
 from common.frozenmodel import generate_model
 from common.classification import SqliteClassificationTracker, ClassificationTracker, Classifier
 from common.snapshot import Snapshotter
+from common.publishers.publisher import Publisher
+from common.publishers.twitter import TwitterApiKeys, TwitterPublisher
+from typing import List
 
 
 @dataclass
@@ -17,6 +20,7 @@ class RootConfiguration:
     classifier: Classifier
     classification_tracker: ClassificationTracker
     snapshotter: Snapshotter
+    publishers: List[Publisher]
 
 
 class FileConfigurationSchema(marshmallow.Schema):
@@ -106,6 +110,34 @@ class SnapshotterConfigurationSchema(marshmallow.Schema):
             store=data['store'])
 
 
+class TwitterApiKeysConfigurationSchema(marshmallow.Schema):
+    consumer_key = marshmallow.fields.String(required=True)
+    consumer_secret_key = marshmallow.fields.String(required=True)
+    access_token = marshmallow.fields.String(required=True)
+    access_token_secret = marshmallow.fields.String(required=True)
+
+    @marshmallow.post_load
+    def provide(self, data, **kwargs):
+        return TwitterApiKeys(
+            consumer_key=data['consumer_key'],
+            consumer_secret_key=data['consumer_secret_key'],
+            access_token=data['access_token'],
+            access_token_secret=data['access_token_secret'])
+
+
+class TwitterPublisherConfigurationSchema(marshmallow.Schema):
+    auth = marshmallow.fields.Nested(
+        TwitterApiKeysConfigurationSchema, required=True)
+
+    @marshmallow.post_load
+    def provide(self, data, **kwargs):
+        return TwitterPublisher(keys=data['auth'])
+
+
+class PublisherConfigurationSchema(OneOfSchema):
+    type_schemas = {'twitter': TwitterPublisherConfigurationSchema}
+
+
 class RootConfigurationSchema(marshmallow.Schema):
     brand = marshmallow.fields.Nested(
         BrandImageProviderConfigurationSchema, required=True)
@@ -115,6 +147,8 @@ class RootConfigurationSchema(marshmallow.Schema):
         ClassificationTrackerConfigurationSchema, required=True)
     snapshotter = marshmallow.fields.Nested(
         SnapshotterConfigurationSchema, required=True)
+    publishers = marshmallow.fields.List(
+        PublisherConfigurationSchema, required=True)
 
     @marshmallow.post_load
     def provide(self, data, **kwargs):
@@ -122,7 +156,8 @@ class RootConfigurationSchema(marshmallow.Schema):
             brand=data['brand'],
             classifier=data['classifier'],
             classification_tracker=data['classification_tracker'],
-            snapshotter=data['snapshotter'])
+            snapshotter=data['snapshotter'],
+            publishers=data['publishers'])
 
 
 def create_root_config(filepath: str) -> RootConfiguration:

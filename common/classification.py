@@ -97,6 +97,9 @@ class ClassificationTracker:
         return Label.NIGHT
 
 
+# TODO: Something here isn't working because the tables aren't being created
+# TODO: Need to setup a way to prepopulate the database file with previous classifications
+# TODO: Should run this and cloud v in parallel so that classifications are populated (local in dry run mode)
 class SqliteClassificationTracker(ClassificationTracker):
     _CLASSIFICATIONS_TABLE_NAME = 'classifications'
 
