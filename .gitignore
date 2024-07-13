@@ -16,3 +16,4 @@ dataset/*
 *.ipynb_checkpoints
 
 .venv
+.test-config
