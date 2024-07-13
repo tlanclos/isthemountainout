@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Tuple, Dict, Iterator, Optional
 from google.cloud import storage as gstorage
 from urllib.parse import urlparse
-from common.config import brand_bucket_name, brand_filename, mountain_history_bucket_name, classification_bucket_name, classification_filename
+from common.config import mountain_history_bucket_name, classification_bucket_name, classification_filename
 from common.storage import GcpBucketStorage, Storage, LocalFileStorage
 from io import BytesIO
 import requests
@@ -124,16 +124,16 @@ class DatasetImageProvider:
         return self.image_storage.get(filename)
 
 
-class BrandImageProvider:
-    storage: GcpBucketStorage
+class BrandImageProvider(ImageProvider):
+    storage: Storage
+    filename: str
 
-    def __init__(self):
-        self.storage = GcpBucketStorage(
-            bucket_name=brand_bucket_name())
+    def __init__(self, *, storage: Storage, filename: str):
+        self.storage = storage
+        self.filename = filename
 
     def get(self) -> Image.Image:
-        blob = self.storage.get(brand_filename())
-        blob.download_as_string()
+        return self.storage.get_image(self.filename)
 
 
 class ImageEditor:
