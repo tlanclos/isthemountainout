@@ -98,8 +98,9 @@ class LocalFileStorage(Storage):
             image.save(f, format='PNG')
 
     def list_files(self, directory: str) -> List[File]:
+        listing_directory = os.path.join(self.base_path, directory)
         return [
-            LocalFile(filepath=os.path.join(self.base_path, filename)) for filename in os.listdir(directory)
+            LocalFile(filepath=os.path.join(listing_directory, filename)) for filename in os.listdir(listing_directory)
         ]
 
     def get(self, filename: str) -> File:
