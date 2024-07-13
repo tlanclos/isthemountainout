@@ -3,8 +3,9 @@ from io import BytesIO
 from PIL import Image
 from datetime import datetime
 from google.cloud import storage
-from common.config import mountain_history_filename_template
+from common.const import mountain_history_filename_template
 from typing import List
+from dataclasses import dataclass
 
 
 class File:
@@ -18,6 +19,9 @@ class File:
         return datetime.strptime(
             os.path.splitext(self.filename())[0],
             mountain_history_filename_template())
+
+    def as_image(self) -> Image.Image:
+        return Image.open(BytesIO(self.read()))
 
 
 class GcpFile(File):
@@ -33,11 +37,9 @@ class GcpFile(File):
         return self.blob.download_as_string()
 
 
+@dataclass
 class LocalFile(File):
     filepath: str
-
-    def __init__(self, *, filepath: str) -> None:
-        self.filepath = filepath
 
     def filename(self) -> str:
         return os.path.basename(self.filepath)
@@ -58,8 +60,7 @@ class Storage:
         pass
 
     def get_image(self, filename: str) -> Image.Image:
-        f = self.get(filename)
-        return Image.open(BytesIO(f.read()))
+        return self.get(filename).as_image()
 
 
 class GcpBucketStorage(Storage):
@@ -87,14 +88,12 @@ class GcpBucketStorage(Storage):
         return GcpFile(blob=self.bucket.get_blob(filename))
 
 
+@dataclass
 class LocalFileStorage(Storage):
     base_path: str
 
-    def __init__(self, *, base_path: str) -> None:
-        self.base_path = base_path
-
     def save_image(self, image: Image.Image, *, filename: str):
-        with open(os.path.join(self.base_path, filename), 'w') as f:
+        with open(os.path.join(self.base_path, f'{filename}.png'), 'wb') as f:
             image.save(f, format='PNG')
 
     def list_files(self, directory: str) -> List[File]:

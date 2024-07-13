@@ -3,7 +3,7 @@ import tweepy
 import io
 import random
 
-from common.config import brand_bucket_name, brand_filename, twitter_api_key_bucket_name, twitter_api_key_filename
+from common.const import brand_bucket_name, brand_filename, twitter_api_key_bucket_name, twitter_api_key_filename
 from common.storage import GcpBucketStorage
 from common.frozenmodel import Label
 from datetime import datetime

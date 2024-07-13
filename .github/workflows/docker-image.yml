@@ -1,9 +1,12 @@
 name: Docker Image CI
 on:
+  # TODO: Re-enable, disabling this temporarily while I work through the refactor
   push:
-    branches: ["latest"]
-  pull_request:
-    branches: ["latest"]
+    branches: ["not-a-branch"]
+  # push:
+  #   branches: ["latest"]
+  # pull_request:
+  #   branches: ["latest"]
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}

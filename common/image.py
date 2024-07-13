@@ -1,13 +1,13 @@
 import json
 import io
 import shutil
-from datetime import date as Date
-from datetime import datetime
+from dataclasses import dataclass
+from datetime import date as Date, datetime
 from typing import Tuple, Dict, Iterator, Optional
 from google.cloud import storage as gstorage
 from urllib.parse import urlparse
-from common.config import mountain_history_bucket_name, classification_bucket_name, classification_filename
-from common.storage import GcpBucketStorage, Storage, LocalFileStorage
+from common.const import mountain_history_bucket_name, classification_bucket_name, classification_filename
+from common.storage import GcpBucketStorage, Storage, LocalFileStorage, File
 from io import BytesIO
 import requests
 from PIL import Image
@@ -19,11 +19,9 @@ class ImageProvider:
         pass
 
 
+@dataclass
 class SpaceNeedleImageProvider(ImageProvider):
-    cropped: bool
-
-    def __init__(self, *, cropped: bool = True):
-        self.cropped = cropped
+    cropped: bool = True
 
     def __space_needle_url(self) -> str:
         return 'https://backend.roundshot.com/cams/241/original'
@@ -56,40 +54,29 @@ class SpaceNeedleImageProvider(ImageProvider):
                 f'Could not download latest image from {url} -> {redirected_url}', req)
 
 
-class TimestampedSnapshotImageProvider(ImageProvider):
+@dataclass
+class LatestSnapshotImageProvider(ImageProvider):
     storage: Storage
-    timestamp: Optional[datetime]
 
-    def _image_file(self) -> Tuple[gstorage.Blob, datetime]:
-        if self.timestamp is None:
-            blob = next(
-                reversed(sorted(self.storage.list_files('.'), key=lambda f: f.date())))
-            return blob, self._date_of_blob(blob)
-        else:
-            blobs = list(
-                sorted(self.storage.list_files('.'), key=lambda f: f.date()))
-            timestamps = [self._date_of_blob(blob) for blob in blobs]
-            index = max(0, min(len(timestamps) - 1,
-                        bisect(timestamps, self.timestamp)))
-            blob = blobs[index]
-            return blob, self._date_of_blob(blob)
-
-    def __init__(self, *, timestamp: Optional[datetime] = None, from_disk_path: Optional[str] = None):
-        if from_disk_path:
-            self.storage = LocalFileStorage(base_path=from_disk_path)
-        else:
-            self.storage = GcpBucketStorage(
-                bucket_name=mountain_history_bucket_name())
-        self.timestamp = timestamp
+    def _image_file(self) -> File:
+        return next(reversed(sorted(self.storage.list_files('.'), key=lambda f: f.date())))
 
     def get(self) -> Tuple[Image.Image, Date]:
-        image_blob, date = self._image_file()
-        return Image.open(BytesIO(image_blob.download_as_bytes())), date
+        image_file = self._image_file()
+        return image_file.as_image(), image_file.date()
 
 
-class LatestSnapshotImageProvider(TimestampedSnapshotImageProvider):
-    def __init__(self, from_disk_path: Optional[str] = None):
-        super().__init__(timestamp=None, from_disk_path=from_disk_path)
+@dataclass
+class TimestampedSnapshotImageProvider(LatestSnapshotImageProvider):
+    timestamp: datetime
+
+    def _image_file(self) -> File:
+        files = list(
+            sorted(self.storage.list_files('.'), key=lambda f: f.date()))
+        timestamps = [file.date() for file in files]
+        index = max(0, min(len(timestamps) - 1,
+                    bisect(timestamps, self.timestamp)))
+        return files[index]
 
 
 class Classification:
@@ -97,6 +84,7 @@ class Classification:
     mountainPosition: Tuple[float, float]
 
 
+# TODO: This needs to be converted to a file-based image provider
 class DatasetImageProvider:
     storage: GcpBucketStorage
     image_storage: GcpBucketStorage
@@ -124,16 +112,17 @@ class DatasetImageProvider:
         return self.image_storage.get(filename)
 
 
-class BrandImageProvider(ImageProvider):
-    storage: Storage
-    filename: str
+class ConstantImageProvider(ImageProvider):
+    file: File
 
-    def __init__(self, *, storage: Storage, filename: str):
-        self.storage = storage
-        self.filename = filename
+    def __init__(self, *, file: File):
+        self.file = file
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}(file={self.file})'
 
     def get(self) -> Image.Image:
-        return self.storage.get_image(self.filename)
+        return self.file.as_image()
 
 
 class ImageEditor:
