@@ -10,6 +10,7 @@ from astral.sun import sun
 from PIL import Image
 
 from common.const import PACIFIC_TIMEZONE
+from common.sqlite import safe_boolean, safe_datetime
 from common.frozenmodel import Label, labels
 from common.image import ImageProvider
 from common.storage import LocalFile
@@ -140,10 +141,10 @@ class SqliteClassificationTracker(ClassificationTracker):
             rows: List[ClassificationRow] = []
             for row in cursor.fetchall():
                 rows.append(ClassificationRow(
-                    date=row[0],
-                    classification=row[1],
-                    should_post=row[2],
-                    was_posted=row[3]))
+                    date=safe_datetime(row[0]),
+                    classification=Label(row[1]),
+                    should_post=safe_boolean(row[2]),
+                    was_posted=safe_boolean(row[3])))
             return rows
 
     def __create_database(self):
