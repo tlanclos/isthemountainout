@@ -88,7 +88,8 @@ class ClassificationTracker:
         for row in reversed(self.read_latest(count=100)):
             if row.was_posted or row.classification == Label.NIGHT:
                 return row.classification
-            elif row.date.date() == yesterday:
+
+            if row.date.date() == yesterday:
                 print(
                     f'Post not found since yesterday, assuming {Label.NIGHT}')
                 return Label.NIGHT
