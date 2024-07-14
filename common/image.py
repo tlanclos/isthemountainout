@@ -4,10 +4,8 @@ import shutil
 from dataclasses import dataclass
 from datetime import date as Date, datetime
 from typing import Tuple, Dict, Iterator
-from google.cloud import storage as gstorage
 from urllib.parse import urlparse
-from common.const import mountain_history_bucket_name, classification_bucket_name, classification_filename
-from common.storage import GcpBucketStorage, Storage, File
+from common.storage import Storage, File
 import requests
 from PIL import Image
 from bisect import bisect
@@ -83,32 +81,25 @@ class Classification:
     mountainPosition: Tuple[float, float]
 
 
-# TODO: This needs to be converted to a file-based image provider
 class DatasetImageProvider:
-    storage: GcpBucketStorage
-    image_storage: GcpBucketStorage
-    classifications: Iterator[Tuple[str, Classification]]
+    snapshots: Storage
+    classifications: Dict[str, Classification]
+    _classifications_iterator: Iterator[Tuple[str, Classification]]
 
-    def __init__(self):
-        self.storage = GcpBucketStorage(
-            bucket_name=classification_bucket_name())
-        self.image_storage = GcpBucketStorage(
-            bucket_name=mountain_history_bucket_name())
-
-    def __get_all_classifications(self) -> Dict[str, Classification]:
-        return json.loads(self.storage.get(
-            classification_filename()).download_as_string())
+    def __init__(self, *, snapshots: Storage, classifications: Dict[str, Classification]):
+        self.snapshots = snapshots
+        self.classifications = classifications
 
     def __iter__(self):
-        self.classifications = iter(self.__get_all_classifications().items())
+        self._classifications_iterator = iter(self.classifications.items())
         return self
 
     def __next__(self) -> Tuple[str, str]:
-        file_name, classification = next(self.classifications)
+        file_name, classification = next(self._classifications_iterator)
         return file_name, classification['classification']
 
-    def get(self, filename) -> gstorage.Blob:
-        return self.image_storage.get(filename)
+    def get(self, filename) -> File:
+        return self.snapshots.get(filename)
 
 
 class ConstantImageProvider(ImageProvider):

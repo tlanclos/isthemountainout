@@ -12,6 +12,9 @@ parser.add_argument('action', choices=[
 args = parser.parse_args()
 
 
+# TODO: Need to refactor this to work with the "storage" version of the DatasetImageProvider
+# TODO: Will need to create a network provided version or just add a configuration in the
+# TODO: Jupyter script to load from the right directory
 def download_dataset():
     provider = DatasetImageProvider()
     now = datetime.now()
