@@ -1,7 +1,7 @@
 #!/bin/bash
 
-source  /opt/mountain/classify/_venv/bin/activate
-pushd /opt/mountain/classify
-python main.py \
+source  /opt/mountain/prod/_venv/bin/activate
+pushd /opt/mountain/prod
+python classify.py \
   --dry-run \
   --config="/config/configuration.yaml"

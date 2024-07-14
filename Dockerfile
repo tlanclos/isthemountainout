@@ -15,28 +15,17 @@ COPY "requirements.*.txt" /opt/mountain/build/
 
 WORKDIR /opt/mountain/build
 RUN mkdir -p /opt/mountain/build/deploy
-RUN _venv/bin/python deploy.py snapshot
-RUN _venv/bin/python deploy.py classify
+RUN _venv/bin/python deploy.py
 
 # Copy deployments to prep for installation
 #==========================================
-RUN mkdir -p /opt/mountain/snapshot
-RUN cp deploy/snapshot.zip /opt/mountain/snapshot/.
+RUN mkdir -p /opt/mountain/prod
+RUN cp deploy/prod.zip /opt/mountain/prod/.
 
-RUN mkdir -p /opt/mountain/classify
-RUN cp deploy/classify.zip /opt/mountain/classify/.
-
-# Install snapshotting service
+# Install cron services
 #=============================
-WORKDIR /opt/mountain/snapshot
-RUN unzip snapshot.zip
-RUN python3 -m virtualenv _venv
-RUN _venv/bin/pip install -r requirements.txt
-
-# Install classification service
-#===============================
-WORKDIR /opt/mountain/classify
-RUN unzip classify.zip
+WORKDIR /opt/mountain/prod
+RUN unzip prod.zip
 RUN python3 -m virtualenv _venv
 RUN _venv/bin/pip install -r requirements.txt
 
@@ -60,8 +49,7 @@ RUN curl -fsSLO "$SUPERCRONIC_URL" \
 
 RUN useradd -m mountaineer
 
-COPY --from=build /opt/mountain/snapshot /opt/mountain/snapshot
-COPY --from=build /opt/mountain/classify /opt/mountain/classify
+COPY --from=build /opt/mountain/prod /opt/mountain/prod
 COPY release/take-mountain-snapshot /usr/local/bin/.
 COPY release/classify-mountain-snapshot /usr/local/bin/.
 

@@ -6,9 +6,6 @@ from typing import Dict, List
 from zipfile import ZipFile
 
 parser = argparse.ArgumentParser(description='Build packages for deployment')
-parser.add_argument('package', choices=[
-                    'snapshot', 'classify'], help='Package to build')
-
 args = parser.parse_args()
 
 
@@ -56,23 +53,12 @@ def deploy_package(options: DeploymentOptions):
                     f.write(file_path, newpath)
 
 
-if args.package == 'snapshot':
-    deploy_package(DeploymentOptions(
-        archive_name='snapshot',
-        include_directories=['common'],
-        include_files={
-            'snapshot.py': 'main.py',
-            'requirements.snapshot.txt': 'requirements.txt',
-        },
-    ))
-elif args.package == 'classify':
-    deploy_package(DeploymentOptions(
-        archive_name='classify',
-        include_directories=['common'],
-        include_files={
-            'classify.py': 'main.py',
-            'requirements.classify.txt': 'requirements.txt',
-        },
-    ))
-else:
-    print(f'Unknown package {args.package}')
+deploy_package(DeploymentOptions(
+    archive_name='prod',
+    include_directories=['common'],
+    include_files={
+        'snapshot.py': 'snapshot.py',
+        'classify.py': 'classify.py',
+        'requirements.prod.txt': 'requirements.txt',
+    },
+))
