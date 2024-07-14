@@ -1,2 +1,2 @@
 0,30  4-22  * * * /usr/local/bin/take-mountain-snapshot
-*/5   *  * * * /usr/local/bin/classify-mountain-snapshot
+5     6-21  * * * /usr/local/bin/classify-mountain-snapshot
