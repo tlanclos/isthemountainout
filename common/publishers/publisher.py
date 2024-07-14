@@ -1,9 +1,10 @@
 import random
+from datetime import UTC, datetime
+from typing import List
+
+from PIL import Image
 
 from common.frozenmodel import Label
-from datetime import datetime, UTC
-from typing import List
-from PIL import Image
 
 PUBLISHER_STATUSES = {
     Label.BEAUTIFUL: [
@@ -43,5 +44,4 @@ class Publisher:
     def _tags_for_classification(self, classification: Label) -> List[str]:
         if classification == Label.BEAUTIFUL:
             return ['MountRainier', 'SpaceNeedle', 'Seattle']
-        else:
-            return []
+        return []
