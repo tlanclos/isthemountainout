@@ -1,10 +1,15 @@
 import os
-import tensorflow as tf
-import common.model as m
-
-from tensorflow.keras.layers import RandomTranslation, RandomBrightness, Cropping2D, Dense, Dropout, GlobalAveragePooling2D, Conv2D, BatchNormalization, MaxPooling2D, SeparableConv2D, Activation, add
-from typing import List, Optional
 from enum import Enum
+from typing import List, Optional
+
+import tensorflow as tf
+from tensorflow.keras.layers import (Activation, BatchNormalization, Conv2D,
+                                     Cropping2D, Dense, Dropout,
+                                     GlobalAveragePooling2D, MaxPooling2D,
+                                     RandomBrightness, RandomTranslation,
+                                     SeparableConv2D, add)
+
+import common.model as m
 
 
 class Label(Enum):

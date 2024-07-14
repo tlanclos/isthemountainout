@@ -1,8 +1,9 @@
-import os
-from zipfile import ZipFile
-from datetime import datetime
-from common.image import DatasetImageProvider
 import argparse
+import os
+from datetime import datetime
+from zipfile import ZipFile
+
+from common.image import DatasetImageProvider
 
 parser = argparse.ArgumentParser(
     description='Utility for performing actions on dataset')

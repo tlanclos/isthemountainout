@@ -1,6 +1,7 @@
 import time
-import tensorflow as tf
 from typing import Tuple
+
+import tensorflow as tf
 
 
 class Dataset:

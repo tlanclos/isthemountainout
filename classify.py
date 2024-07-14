@@ -1,5 +1,5 @@
-import os
 import argparse
+import os
 
 from common.config import RootConfiguration, create_root_config
 from common.image import ImageEditor
@@ -30,7 +30,7 @@ def main(*, config: RootConfiguration, dry_run: bool = False):
         if not dry_run:
             tracker.amend(classification)
             print('Branding image')
-            branded_image = ImageEditor(image).brand(config.brand.get())
+            branded_image = ImageEditor(image).brand(brand=config.brand.get())
             for publisher in config.publishers:
                 publisher.post(branded_image, classification=classification)
     else:

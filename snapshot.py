@@ -1,4 +1,5 @@
 import argparse
+
 from common.config import RootConfiguration, create_root_config
 
 parser = argparse.ArgumentParser(

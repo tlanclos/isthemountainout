@@ -1,9 +1,9 @@
+import argparse
 import os
 import shutil
 import tempfile
+from typing import Dict, List
 from zipfile import ZipFile
-import argparse
-from typing import List, Dict
 
 parser = argparse.ArgumentParser(description='Build packages for deployment')
 parser.add_argument('package', choices=[

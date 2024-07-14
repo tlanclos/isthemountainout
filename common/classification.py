@@ -1,18 +1,18 @@
 import sqlite3
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import List, Optional, Tuple
 
-import tensorflow as tf
 import numpy as np
-
+import tensorflow as tf
 from astral import LocationInfo
 from astral.sun import sun
-from dataclasses import dataclass
 from PIL import Image
+
 from common.const import PACIFIC_TIMEZONE
+from common.frozenmodel import Label, labels
 from common.image import ImageProvider
 from common.storage import LocalFile
-from common.frozenmodel import labels, Label
-from datetime import datetime, timedelta
-from typing import List, Tuple, Optional
 
 
 @dataclass
@@ -142,7 +142,7 @@ class SqliteClassificationTracker(ClassificationTracker):
                 rows.append(ClassificationRow(
                     date=row[0],
                     classification=row[1],
-                    should_posted=row[2],
+                    should_post=row[2],
                     was_posted=row[3]))
             return rows
 

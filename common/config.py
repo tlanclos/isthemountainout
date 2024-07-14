@@ -1,17 +1,21 @@
+from dataclasses import dataclass
+from typing import List
+
 import marshmallow
 import marshmallow.fields
 import yaml
-
-from dataclasses import dataclass
 from marshmallow_oneofschema import OneOfSchema
-from common.image import ImageProvider, SpaceNeedleImageProvider, LatestSnapshotImageProvider, ConstantImageProvider
-from common.storage import LocalFile, LocalFileStorage
+
+from common.classification import (ClassificationTracker, Classifier,
+                                   SqliteClassificationTracker)
 from common.frozenmodel import generate_model
-from common.classification import SqliteClassificationTracker, ClassificationTracker, Classifier
-from common.snapshot import Snapshotter
+from common.image import (ConstantImageProvider, ImageProvider,
+                          LatestSnapshotImageProvider,
+                          SpaceNeedleImageProvider)
 from common.publishers.publisher import Publisher
 from common.publishers.twitter import TwitterApiKeys, TwitterPublisher
-from typing import List
+from common.snapshot import Snapshotter
+from common.storage import LocalFile, LocalFileStorage
 
 
 @dataclass

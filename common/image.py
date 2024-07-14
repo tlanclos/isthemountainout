@@ -1,13 +1,16 @@
 import io
 import shutil
+from bisect import bisect
 from dataclasses import dataclass
-from datetime import date as Date, datetime
-from typing import Tuple, Dict, Iterator
+from datetime import date as Date
+from datetime import datetime
+from typing import Dict, Iterator, Tuple
 from urllib.parse import urlparse
-from common.storage import Storage, File
+
 import requests
 from PIL import Image
-from bisect import bisect
+
+from common.storage import File, Storage
 
 
 class ImageProvider:
@@ -125,7 +128,7 @@ class ImageEditor:
         return self
 
     def brand(self, *, brand: Image):
-        self.image = self.__apply_brand(self.image, brand=brand)
+        self.image = self.__apply_brand(brand=brand)
         return self
 
     def __apply_brand(self, *, brand: Image):
