@@ -112,7 +112,7 @@ class SnapshotterConfigurationSchema(marshmallow.Schema):
 
 class TwitterApiKeysConfigurationSchema(marshmallow.Schema):
     consumer_key = marshmallow.fields.String(required=True)
-    consumer_secret_key = marshmallow.fields.String(required=True)
+    consumer_key_secret = marshmallow.fields.String(required=True)
     access_token = marshmallow.fields.String(required=True)
     access_token_secret = marshmallow.fields.String(required=True)
 
@@ -120,7 +120,7 @@ class TwitterApiKeysConfigurationSchema(marshmallow.Schema):
     def provide(self, data, **kwargs):
         return TwitterApiKeys(
             consumer_key=data['consumer_key'],
-            consumer_secret_key=data['consumer_secret_key'],
+            consumer_key_secret=data['consumer_key_secret'],
             access_token=data['access_token'],
             access_token_secret=data['access_token_secret'])
 
@@ -148,7 +148,8 @@ class RootConfigurationSchema(marshmallow.Schema):
     snapshotter = marshmallow.fields.Nested(
         SnapshotterConfigurationSchema, required=True)
     publishers = marshmallow.fields.List(
-        PublisherConfigurationSchema, required=True)
+        marshmallow.fields.Nested(
+            PublisherConfigurationSchema), required=True)
 
     @marshmallow.post_load
     def provide(self, data, **kwargs):
