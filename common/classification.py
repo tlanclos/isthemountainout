@@ -97,69 +97,70 @@ class ClassificationTracker:
         return Label.NIGHT
 
 
-# TODO: Something here isn't working because the tables aren't being created
 # TODO: Need to setup a way to prepopulate the database file with previous classifications
 # TODO: Should run this and cloud v in parallel so that classifications are populated (local in dry run mode)
 class SqliteClassificationTracker(ClassificationTracker):
-    _CLASSIFICATIONS_TABLE_NAME = 'classifications'
-
-    connection: sqlite3.Connection
     dbfile: LocalFile
 
     def __init__(self, *, dbfile: LocalFile) -> None:
         self.dbfile = dbfile
-        self.connection = sqlite3.connect(dbfile.filepath)
         self.__create_database()
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}(dbfile={self.dbfile})'
 
     def amend(self, classification: ClassificationRow):
-        cursor = self.connection.cursor()
-        table_name = SqliteClassificationTracker._CLASSIFICATIONS_TABLE_NAME
-        cursor.execute(
-            f"INSERT INTO {table_name} (classification_time, classification, should_post, was_posted) VALUES (?, ?, ?, ?);",
-            (classification.date, classification.classification.value, classification.should_post, classification.was_posted))
-        cursor.fetchall()
-        cursor.close()
+        with self.__connection() as connection:
+            cursor = connection.cursor()
+            cursor.execute("""
+                INSERT INTO classifications (
+                    classification_time,
+                    classification,
+                    should_post,
+                    was_posted
+                ) VALUES (?, ?, ?, ?);
+            """, (
+                classification.date,
+                classification.classification.value,
+                classification.should_post,
+                classification.was_posted,
+            ))
+            connection.commit()
 
     def read_latest(self, *, count: int) -> List[ClassificationRow]:
-        cursor = self.connection.cursor()
-        table_name = SqliteClassificationTracker._CLASSIFICATIONS_TABLE_NAME
-        cursor.execute(
-            f"""
-            SELECT classification_time, classification, should_post, was_posted
-            FROM {table_name}
-            ORDER BY classification_time DESC
-            LIMIT ?
+        with self.__connection() as connection:
+            cursor = connection.cursor()
+            cursor.execute("""
+                SELECT classification_time, classification, should_post, was_posted
+                FROM classifications
+                ORDER BY classification_time DESC
+                LIMIT ?
             """, (count,))
 
-        rows: List[ClassificationRow] = []
-        for row in cursor.fetchall():
-            rows.append(ClassificationRow(
-                date=row[0], classification=row[1], should_posted=row[2], was_posted=row[3]))
-        cursor.close()
-        return rows
+            rows: List[ClassificationRow] = []
+            for row in cursor.fetchall():
+                rows.append(ClassificationRow(
+                    date=row[0],
+                    classification=row[1],
+                    should_posted=row[2],
+                    was_posted=row[3]))
+            return rows
 
     def __create_database(self):
-        if self.__table_exists(table_name=SqliteClassificationTracker._CLASSIFICATIONS_TABLE_NAME):
-            self.__create_classifications_table(
-                table_name=SqliteClassificationTracker._CLASSIFICATIONS_TABLE_NAME)
+        with self.__connection() as connection:
+            cursor = connection.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS classifications (
+                    classification_time DATETIME,
+                    classification TEXT,
+                    should_post BOOLEAN,
+                    was_posted BOOLEAN
+                );
+            """)
+            connection.commit()
 
-    def __table_exists(self, *, table_name: str) -> bool:
-        cursor = self.connection.cursor()
-        cursor.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name=?;", (table_name,))
-        rows = cursor.rowcount > 0
-        cursor.close()
-        return rows
-
-    def __create_classifications_table(self, *, table_name: str) -> None:
-        cursor = self.connection.cursor()
-        cursor.execute(
-            f"CREATE TABLE {table_name} (classification_time DATETIME, classification TEXT, should_post BOOLEAN, was_posted BOOLEAN);")
-        cursor.fetchall()
-        cursor.close()
+    def __connection(self) -> sqlite3.Connection:
+        return sqlite3.connect(self.dbfile.filepath)
 
 
 class Classifier:
