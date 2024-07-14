@@ -3,12 +3,11 @@ import io
 import shutil
 from dataclasses import dataclass
 from datetime import date as Date, datetime
-from typing import Tuple, Dict, Iterator, Optional
+from typing import Tuple, Dict, Iterator
 from google.cloud import storage as gstorage
 from urllib.parse import urlparse
 from common.const import mountain_history_bucket_name, classification_bucket_name, classification_filename
-from common.storage import GcpBucketStorage, Storage, LocalFileStorage, File
-from io import BytesIO
+from common.storage import GcpBucketStorage, Storage, File
 import requests
 from PIL import Image
 from bisect import bisect
