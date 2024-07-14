@@ -11,7 +11,7 @@ from common.const import mountain_history_filename_template
 
 
 class File:
-    def filename() -> str:
+    def filename(self) -> str:
         pass
 
     def read(self) -> bytes:
