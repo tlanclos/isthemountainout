@@ -156,7 +156,8 @@ class SqliteClassificationTracker(ClassificationTracker):
                     classification_time DATETIME,
                     classification TEXT,
                     should_post BOOLEAN,
-                    was_posted BOOLEAN
+                    was_posted BOOLEAN,
+                    PRIMARY KEY(classification_time DESC)
                 );
             """)
             connection.commit()
