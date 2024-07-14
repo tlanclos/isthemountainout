@@ -28,7 +28,7 @@ def main(*, config: RootConfiguration, post: bool = False):
         classification.classification)
     if classification.should_post:
         print(f'Posting {classification}')
-        if not post:
+        if post:
             classification.was_posted = True
             print('Branding image')
             branded_image = ImageEditor(image).brand(brand=config.brand.get())
