@@ -99,8 +99,6 @@ class ClassificationTracker:
         return Label.NIGHT
 
 
-# TODO: Need to setup a way to prepopulate the database file with previous classifications
-# TODO: Should run this and cloud v in parallel so that classifications are populated (local in dry run mode)
 class SqliteClassificationTracker(ClassificationTracker):
     dbfile: LocalFile
 

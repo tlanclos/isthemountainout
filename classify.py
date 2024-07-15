@@ -26,11 +26,12 @@ def main(*, config: RootConfiguration, post: bool = False):
 
     classification.should_post = tracker.should_post(
         classification.classification)
+    classification.was_posted = False
     if classification.should_post:
         print('Branding image')
         branded_image = ImageEditor(image).brand(brand=config.brand.get())
-        classification.was_posted = post
-        if classification.was_posted:
+        if post:
+            classification.was_posted = True
             print(f'Posting {classification}')
             for publisher in config.publishers:
                 publisher.post(branded_image, classification=classification)
