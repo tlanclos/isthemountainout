@@ -1,8 +1,14 @@
 FROM ubuntu:latest AS build
 
-RUN apt-get update && apt-get -y install cron python3 \
+RUN apt-get update && apt-get -y install cron python3 python3-pybind11 \
   python3-pip python3-virtualenv unzip libjpeg-turbo8-dev \
-  zlib1g-dev pkg-config libhdf5-dev
+  zlib1g-dev pkg-config libhdf5-dev cmake git
+
+# Build tensorflow lite from source
+#==================================
+RUN git clone --depth 1 --branch v2.17.0 https://github.com/tensorflow/tensorflow.git /opt/tensorflow
+RUN mkdir -p /opt/tensorflow/build
+RUN cd /opt/tensorflow/build && PYTHON=python3 ../tensorflow/lite/tools/pip_package/build_pip_package_with_cmake.sh native
 
 # Build files and create deployments
 #===================================
@@ -28,6 +34,7 @@ WORKDIR /opt/mountain/prod
 RUN unzip prod.zip
 RUN python3 -m virtualenv _venv
 RUN _venv/bin/pip install -r requirements.txt
+RUN _venv/bin/pip install /opt/tensorflow/tensorflow/lite/tools/pip_package/gen/tflite_pip/python3/dist/tflite_runtime-2.17.0-cp312-cp312-linux_x86_64.whl
 
 # Create final / image container
 #=======================
