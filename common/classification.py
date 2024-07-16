@@ -38,6 +38,9 @@ class ClassificationTracker:
     def read_latest(self, *, count: int) -> List[ClassificationRow]:
         pass
 
+    def read_latest_day(self) -> List[ClassificationRow]:
+        pass
+
     def should_post(self, classification: Label) -> bool:
         last_classification = self._read_last_notable_classification()
         new_classification_is_notable = classification in ClassificationTracker.notable_transitions[
@@ -85,8 +88,8 @@ class ClassificationTracker:
 
         # Search back 100 (around 2 days) rows to see when the last posted
         # classification was and take that as the last classification.
-        for row in reversed(self.read_latest(count=100)):
-            if row.was_posted or row.classification == Label.NIGHT:
+        for row in reversed(self.read_latest_day()):
+            if row.should_post or row.was_posted or row.classification == Label.NIGHT:
                 return row.classification
 
             if row.date.date() == yesterday:
@@ -128,22 +131,40 @@ class SqliteClassificationTracker(ClassificationTracker):
             connection.commit()
 
     def read_latest(self, *, count: int) -> List[ClassificationRow]:
+        return self.__read("""
+            SELECT classification_time, classification, should_post, was_posted
+            FROM classifications
+            ORDER BY classification_time DESC
+            LIMIT ?
+        """, (count,))
+
+    def read_latest_day(self) -> List[ClassificationRow]:
+        return self.__read("""
+            SELECT classification_time, classification, should_post, was_posted
+            FROM classifications
+            WHERE classification_time >= (
+                SELECT MAX(classification_time)
+                FROM classifications
+                WHERE classification = 'Night'
+            )
+            ORDER BY classification_time DESC
+        """)
+
+    def __read(self, query: str, parameters: Tuple = ()) -> List[ClassificationRow]:
         with self.__connection() as connection:
             cursor = connection.cursor()
-            cursor.execute("""
-                SELECT classification_time, classification, should_post, was_posted
-                FROM classifications
-                ORDER BY classification_time DESC
-                LIMIT ?
-            """, (count,))
-
+            cursor.execute(query, parameters)
             rows: List[ClassificationRow] = []
+            column = {
+                d[0]: index for index,
+                d in enumerate(cursor.description)
+            }
             for row in cursor.fetchall():
                 rows.append(ClassificationRow(
-                    date=safe_datetime(row[0]),
-                    classification=Label(row[1]),
-                    should_post=safe_boolean(row[2]),
-                    was_posted=safe_boolean(row[3])))
+                    date=safe_datetime(row[column['classification_time']]),
+                    classification=Label(row[column['classification']]),
+                    should_post=safe_boolean(row[column['should_post']]),
+                    was_posted=safe_boolean(row[column['was_posted']])))
             return rows
 
     def __create_database(self):
