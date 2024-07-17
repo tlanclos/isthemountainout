@@ -4,16 +4,21 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Tuple
 
 import numpy as np
-import tensorflow as tf
 from astral import LocationInfo
 from astral.sun import sun
 from PIL import Image
 
 from common.const import PACIFIC_TIMEZONE
-from common.sqlite import safe_boolean, safe_datetime
 from common.frozenmodel import Label, labels
 from common.image import ImageProvider
+from common.sqlite import safe_boolean, safe_datetime
 from common.storage import LocalFile
+
+try:
+    import tensorflow as tf
+    Interpreter = tf.lite.Interpreter
+except:
+    from tflite_runtime.interpreter import Interpreter
 
 
 @dataclass
@@ -193,21 +198,26 @@ class Classifier:
         latitude=47.6209673,
         longitude=-122.348993
     )
-    model: tf.keras.Model
+    interpreter: Interpreter
     image_provider: ImageProvider
 
-    def __init__(self, *, model: tf.keras.Model, image_provider: ImageProvider):
-        self.model = model
+    def __init__(self, *, interpreter: Interpreter, image_provider: ImageProvider):
+        self.interpreter = interpreter
         self.image_provider = image_provider
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}(model={self.model}, image_provider={self.image_provider})'
+        return f'{self.__class__.__name__}(interpreter={self.interpreter}, image_provider={self.image_provider})'
 
     def classify(self, *, image: Image.Image):
-        img_array = tf.keras.utils.img_to_array(
-            image).astype('float32')
-        img_array = tf.expand_dims(img_array, 0)
-        score = tf.nn.softmax(self.model.predict(img_array))
+        def softmax(logits):
+            return np.exp(logits) / np.exp(logits).sum()
+
+        img_array = np.array(image).astype('float32')
+        img_array = np.expand_dims(img_array, 0)
+        predictor = self.interpreter.get_signature_runner()
+        signature = self.interpreter.get_signature_list()
+        score = softmax(predictor(
+            **{signature['serving_default']['inputs'][0]: img_array})[signature['serving_default']['outputs'][0]])
         return labels()[np.argmax(score, axis=1)[0]]
 
     def classify_next(self) -> Tuple[ClassificationRow, Image.Image]:

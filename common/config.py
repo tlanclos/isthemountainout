@@ -8,7 +8,7 @@ from marshmallow_oneofschema import OneOfSchema
 
 from common.classification import (ClassificationTracker, Classifier,
                                    SqliteClassificationTracker)
-from common.frozenmodel import generate_model
+from common.frozenmodel import load_saved_model
 from common.image import (ConstantImageProvider, ImageProvider,
                           LatestSnapshotImageProvider,
                           SpaceNeedleImageProvider)
@@ -91,12 +91,14 @@ class ClassificationTrackerConfigurationSchema(OneOfSchema):
 class ClassifierConfigurationSchema(marshmallow.Schema):
     image_provider = marshmallow.fields.Nested(
         ImageProviderConfigurationSchema, required=True)
-    weights = marshmallow.fields.Nested(FileConfigurationSchema, required=True)
+    model = marshmallow.fields.Nested(FileConfigurationSchema, required=True)
 
     @marshmallow.post_load
     def provide(self, data, **kwargs):
+        interpreter = load_saved_model(model_filepath=data['model'].filepath)
+        interpreter.allocate_tensors()
         return Classifier(
-            model=generate_model(weights_filepath=data['weights'].filepath),
+            interpreter=interpreter,
             image_provider=data['image_provider']
         )
 

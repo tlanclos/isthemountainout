@@ -1,0 +1,6 @@
+#!/bin/bash
+
+source  /opt/mountain/prod/_venv/bin/activate
+pushd /opt/mountain/prod
+python snapshot.py \
+  --config="/config/configuration.yaml"

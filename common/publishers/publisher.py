@@ -1,5 +1,5 @@
 import random
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import List
 
 from PIL import Image
@@ -37,7 +37,8 @@ class Publisher:
         self._post(image, status=status, tags=tags)
 
     def _status_for_classification(self, classification: Label) -> str:
-        days_since_epoch = (datetime.now(UTC) - datetime(1970, 1, 1)).days
+        days_since_epoch = (datetime.now(timezone.utc) -
+                            datetime(1970, 1, 1)).days
         r = random.Random(days_since_epoch)
         return r.choice(PUBLISHER_STATUSES.get(classification))
 
