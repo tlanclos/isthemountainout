@@ -72,4 +72,4 @@ RUN chmod a+x /usr/local/bin/*-mountain-snapshot
 COPY cron/99-mountain-cron /etc/crontab
 
 USER mountaineer
-CMD supercronic /etc/crontab
+CMD supercronic /etc/crontab --passthrough-logs
