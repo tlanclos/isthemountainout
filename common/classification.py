@@ -91,8 +91,6 @@ class ClassificationTracker:
         yesterday = datetime.now(PACIFIC_TIMEZONE).date() - \
             timedelta(days=1)
 
-        # Search back 100 (around 2 days) rows to see when the last posted
-        # classification was and take that as the last classification.
         for row in reversed(self.read_latest_day()):
             if row.should_post or row.was_posted or row.classification == Label.NIGHT:
                 return row.classification
@@ -136,12 +134,12 @@ class SqliteClassificationTracker(ClassificationTracker):
             connection.commit()
 
     def read_latest(self, *, count: int) -> List[ClassificationRow]:
-        return self.__read("""
+        return list(reversed(self.__read("""
             SELECT classification_time, classification, should_post, was_posted
             FROM classifications
             ORDER BY classification_time DESC
             LIMIT ?
-        """, (count,))
+        """, (count,))))
 
     def read_latest_day(self) -> List[ClassificationRow]:
         return self.__read("""
@@ -152,7 +150,7 @@ class SqliteClassificationTracker(ClassificationTracker):
                 FROM classifications
                 WHERE classification = 'Night'
             )
-            ORDER BY classification_time DESC
+            ORDER BY classification_time ASC
         """)
 
     def __read(self, query: str, parameters: Tuple = ()) -> List[ClassificationRow]:
