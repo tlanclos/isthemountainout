@@ -1,5 +1,6 @@
 import random
 from datetime import datetime, timezone
+from sqlite3 import ProgrammingError
 from typing import List
 
 from PIL import Image
@@ -40,7 +41,11 @@ class Publisher:
         days_since_epoch = (datetime.now(timezone.utc) -
                             datetime(1970, 1, 1)).days
         r = random.Random(days_since_epoch)
-        return r.choice(PUBLISHER_STATUSES.get(classification))
+        statuses = PUBLISHER_STATUSES.get(classification)
+        if isinstance(statuses, list) and len(statuses) > 0:
+            return r.choice(statuses)
+        raise ProgrammingError(
+            f'Must supply some statuses for {classification}')
 
     def _tags_for_classification(self, classification: Label) -> List[str]:
         if classification == Label.BEAUTIFUL:
