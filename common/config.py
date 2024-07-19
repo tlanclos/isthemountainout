@@ -1,10 +1,11 @@
 from dataclasses import dataclass
+from sqlite3 import ProgrammingError
 from typing import List
 
 import marshmallow
 import marshmallow.fields
 import yaml
-from marshmallow_oneofschema import OneOfSchema
+from marshmallow_oneofschema.one_of_schema import OneOfSchema
 
 from common.classification import (ClassificationTracker, Classifier,
                                    SqliteClassificationTracker)
@@ -170,4 +171,8 @@ class RootConfigurationSchema(marshmallow.Schema):
 def create_root_config(filepath: str) -> RootConfiguration:
     schema = RootConfigurationSchema()
     with open(filepath, 'r', encoding='utf-8') as f:
-        return schema.load(yaml.safe_load(f))
+        config = schema.load(yaml.safe_load(f))
+        if isinstance(config, RootConfiguration):
+            return config
+        raise ProgrammingError(
+            'Schema does not construct a RootConfiguration object')
