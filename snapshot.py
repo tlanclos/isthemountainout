@@ -1,3 +1,6 @@
+"""
+Provides snapshotting capabilities to the Mt. Rainier detection robot.
+"""
 import argparse
 
 from common.config import RootConfiguration, create_root_config
@@ -11,6 +14,10 @@ parser.add_argument(
 
 
 def main(*, config: RootConfiguration):
+    """
+    Provided a configuration, requests an image and 
+    stores it somewhere.
+    """
     config.snapshotter.snapshot()
 
 

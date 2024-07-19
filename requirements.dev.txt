@@ -4,3 +4,4 @@ matplotlib==3.6.2
 seaborn==0.12.1
 scikit-learn==1.5.1
 tensorflow==2.14.0
+behave==1.2.6

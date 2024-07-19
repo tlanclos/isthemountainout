@@ -1,9 +1,11 @@
 name: Docker Image CI
 on:
+  # pause builds until tagged builds are set up
   push:
-    branches: ["latest"]
-  pull_request:
-    branches: ["latest"]
+  # push:
+  #   branches: ["latest"]
+  # pull_request:
+  #   branches: ["latest"]
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
