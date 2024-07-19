@@ -29,12 +29,15 @@ def main(*, config: RootConfiguration, post: bool = False):
     classification.was_posted = False
     if classification.should_post:
         print('Branding image')
-        branded_image = ImageEditor(image).brand(brand=config.brand.get())
+        brand_image, _ = config.brand.get()
+        branded_image = ImageEditor(image).brand(brand=brand_image).image
         if post:
             classification.was_posted = True
             print(f'Posting {classification}')
             for publisher in config.publishers:
-                publisher.post(branded_image, classification=classification)
+                publisher.post(
+                    image=branded_image,
+                    classification=classification.classification)
 
     else:
         print(f'Classification did not change from {classification}')

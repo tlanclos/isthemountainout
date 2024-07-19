@@ -4,7 +4,7 @@ from bisect import bisect
 from dataclasses import dataclass
 from datetime import date as Date
 from datetime import datetime
-from typing import Dict, Iterator, Tuple
+from typing import Dict, Iterator, Optional, Tuple
 from urllib.parse import urlparse
 
 import requests
@@ -117,7 +117,7 @@ class DatasetImageProvider:
 
     def __next__(self) -> Tuple[str, str]:
         file_name, classification = next(self._classifications_iterator)
-        return file_name, classification['classification']
+        return file_name, classification.classification
 
     def get(self, filename) -> File:
         return self.snapshots.get(filename)
@@ -132,25 +132,21 @@ class ConstantImageProvider(ImageProvider):
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}(file={self.file})'
 
-    def get(self) -> Image.Image:
-        return self.file.as_image()
+    def get(self) -> Tuple[Image.Image, datetime]:
+        return self.file.as_image(), datetime.now()
 
 
 class ImageEditor:
-    image: Image
+    image: Image.Image
 
-    def __init__(self, image: Image):
+    def __init__(self, image: Image.Image):
         self.image = image
 
     def crop(self, *, x: int, y: int, width: int, height: int):
         self.image = self.image.crop((x, y, x + width, y + height))
         return self
 
-    def brand(self, *, brand: Image):
-        self.image = self.__apply_brand(brand=brand)
-        return self
-
-    def __apply_brand(self, *, brand: Image):
+    def brand(self, *, brand: Image.Image):
         branded = self.image.copy()
         branded.paste(brand, (0, 0), brand)
         self.image = branded
