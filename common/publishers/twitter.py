@@ -1,10 +1,11 @@
-import tweepy
 import io
-
 from dataclasses import dataclass
-from common.publishers.publisher import Publisher
 from typing import List
+
+import tweepy
 from PIL import Image
+
+from common.publishers.publisher import Publisher
 
 
 @dataclass
