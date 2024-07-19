@@ -164,7 +164,8 @@ class SqliteClassificationTracker(ClassificationTracker):
             }
             for row in cursor.fetchall():
                 rows.append(ClassificationRow(
-                    date=safe_datetime(row[column['classification_time']]),
+                    date=safe_datetime(
+                        row[column['classification_time']]) or datetime.now(),
                     classification=Label(row[column['classification']]),
                     should_post=safe_boolean(row[column['should_post']]),
                     was_posted=safe_boolean(row[column['was_posted']])))
