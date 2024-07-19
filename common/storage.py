@@ -11,10 +11,10 @@ from common.const import mountain_history_filename_template
 
 class File:
     def filename(self) -> str:
-        pass
+        raise NotImplementedError()
 
     def read(self) -> bytes:
-        pass
+        raise NotImplementedError()
 
     def date(self) -> datetime:
         return datetime.strptime(
@@ -39,13 +39,13 @@ class LocalFile(File):
 
 class Storage:
     def save_image(self, image: Image.Image, *, filename: str):
-        pass
+        raise NotImplementedError()
 
     def list_files(self, directory: str) -> List[File]:
-        pass
+        raise NotImplementedError()
 
     def get(self, filename: str) -> File:
-        pass
+        raise NotImplementedError()
 
     def get_image(self, filename: str) -> Image.Image:
         return self.get(filename).as_image()

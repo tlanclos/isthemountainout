@@ -38,13 +38,13 @@ class ClassificationTracker:
     }
 
     def amend(self, classification: ClassificationRow):
-        pass
+        raise NotImplementedError()
 
     def read_latest(self, *, count: int) -> List[ClassificationRow]:
-        pass
+        raise NotImplementedError()
 
     def read_latest_day(self) -> List[ClassificationRow]:
-        pass
+        raise NotImplementedError()
 
     def should_post(self, classification: Label) -> bool:
         last_classification = self._read_last_notable_classification()

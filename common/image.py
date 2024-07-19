@@ -33,7 +33,7 @@ class DecompressionBombIgnorer:
 
 class ImageProvider:
     def get(self) -> Tuple[Image.Image, datetime]:
-        pass
+        raise NotImplementedError()
 
 
 @dataclass
