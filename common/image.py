@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import date as Date
 from datetime import datetime
 from typing import Dict, Iterator, Optional, Tuple
-from urllib.parse import urlparse
+from urllib.parse import urlparse, ParseResult
 
 import requests
 from PIL import Image
@@ -43,19 +43,22 @@ class SpaceNeedleImageProvider(ImageProvider):
     def __space_needle_url(self) -> str:
         return 'https://backend.roundshot.com/cams/241/original'
 
-    def get(self) -> Tuple[Image.Image, datetime]:
+    def _make_request(self) -> Tuple[ParseResult, requests.Response]:
         url = self.__space_needle_url()
         redirected_url = requests.head(url, allow_redirects=True).url
         # Example format: https://storage.roundshot.com/544a1a9d451563.40343637/2021-07-02/14-40-00/2021-07-02-14-40-00_original.jpg
         url = urlparse(redirected_url)
+        return url, requests.get(redirected_url, stream=True)
+
+    def get(self) -> Tuple[Image.Image, datetime]:
+        url, response = self._make_request()
         url_path = list(filter(None, url.path.split('/')))
         date = datetime.strptime(
             f'{url_path[1]}T{url_path[2]}', '%Y-%m-%dT%H-%M-%S')
-        req = requests.get(redirected_url, stream=True)
-        if req.status_code == 200:
-            req.raw.decode_content = True
+        if response.status_code == 200:
+            response.raw.decode_content = True
             data = io.BytesIO()
-            shutil.copyfileobj(req.raw, data)
+            shutil.copyfileobj(response.raw, data)
             data.seek(0)
             with __max_image_size(200_000_000):
                 image = Image.open(data)
@@ -69,7 +72,7 @@ class SpaceNeedleImageProvider(ImageProvider):
             return resized, date
         else:
             raise IOError(
-                f'Could not download latest image from {url} -> {redirected_url}', req)
+                f'Could not download latest image from {url}', response)
 
 
 @dataclass
