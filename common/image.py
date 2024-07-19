@@ -13,6 +13,24 @@ from PIL import Image
 from common.storage import File, Storage
 
 
+def __max_image_size(pixels: int):
+    return DecompressionBombIgnorer(max_image_size=pixels)
+
+
+@dataclass
+class DecompressionBombIgnorer:
+    max_image_size: int
+    _current_max_image_size: Optional[int] = None
+
+    def __enter__(self):
+        self._current_max_image_size = Image.MAX_IMAGE_PIXELS
+        Image.MAX_IMAGE_PIXELS = self.max_image_size
+        return None
+
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        Image.MAX_IMAGE_PIXELS = self._current_max_image_size
+
+
 class ImageProvider:
     def get(self) -> Tuple[Image.Image, datetime]:
         pass
@@ -39,7 +57,8 @@ class SpaceNeedleImageProvider(ImageProvider):
             data = io.BytesIO()
             shutil.copyfileobj(req.raw, data)
             data.seek(0)
-            image = Image.open(data)
+            with __max_image_size(200_000_000):
+                image = Image.open(data)
             width, height = image.size
             # The original image size had a height of 2048, so try to keep it within those bounds keeping the aspect ratio
             scale = height / 2048
