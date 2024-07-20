@@ -1,23 +1,27 @@
 import os
+from io import BytesIO
 from typing import Tuple
 from urllib.parse import ParseResult
+
 from behave import *
-from requests.models import Response as Response
-from common.image import SpaceNeedleImageProvider, ConstantImageProvider
 from PIL import Image
-from io import BytesIO
-from features.paths import RESOURCES_PATH
+from requests.models import Response as Response
+
+from common.image import (ConstantImageProvider, SpaceNeedleImageProvider,
+                          max_image_size)
 from common.storage import LocalFile
+from features.paths import RESOURCES_PATH
 
 
-@given(u'a live image provider')
+@given('a live image provider')
 def provide_live_image_provider(context):
-    image = Image.open(os.path.join(
-        RESOURCES_PATH, 'mountain.png'))
+    with max_image_size(200_000_000):
+        image = Image.open(os.path.join(
+            RESOURCES_PATH, 'mountain.jpg'))
 
     class MockSpaceNeedleImageProvider(SpaceNeedleImageProvider):
         def _make_request(self) -> Tuple[ParseResult, Response]:
-            path = '/a/2024-01-01/00:01:02/data'
+            path = '/a/2024-01-01/00-01-02/data'
             response = Response()
             response.status_code = 200
 
@@ -27,14 +31,13 @@ def provide_live_image_provider(context):
             response.raw = image_file
             return ParseResult('', '', path, '', '', ''), response
 
-    context.image_rotation = [image]
     context.image_provider = MockSpaceNeedleImageProvider()
+    context.image_rotation = [context.image_provider.get()]
 
 
-@given(u'a constant image provider')
+@given('a constant image provider')
 def provide_constant_image_provider(context):
-    image_file = LocalFile(filepath=os.path.join(
-        RESOURCES_PATH, 'mountain.png'))
-
-    context.image_rotation = [image_file.as_image()]
-    context.image_provider = ConstantImageProvider(file=image_file)
+    context.image_provider = ConstantImageProvider(
+        file=LocalFile(filepath=os.path.join(
+            RESOURCES_PATH, 'mountain.jpg')))
+    context.image_rotation = [context.image_provider.get()]

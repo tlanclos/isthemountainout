@@ -8,11 +8,11 @@ from astral import LocationInfo
 from astral.sun import sun
 from PIL import Image
 
-from common.const import PACIFIC_TIMEZONE
 from common.frozenmodel import Label, labels
 from common.image import ImageProvider
 from common.sqlite import safe_boolean, safe_datetime
 from common.storage import LocalFile
+from common.time import PACIFIC_TIMEZONE
 
 try:
     import tensorflow as tf

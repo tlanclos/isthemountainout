@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import date as Date
 from datetime import datetime
 from typing import Dict, Iterator, Optional, Tuple
-from urllib.parse import urlparse, ParseResult
+from urllib.parse import ParseResult, urlparse
 
 import requests
 from PIL import Image
@@ -13,7 +13,7 @@ from PIL import Image
 from common.storage import File, Storage
 
 
-def __max_image_size(pixels: int):
+def max_image_size(pixels: int):
     return DecompressionBombIgnorer(max_image_size=pixels)
 
 
@@ -55,24 +55,25 @@ class SpaceNeedleImageProvider(ImageProvider):
         url_path = list(filter(None, url.path.split('/')))
         date = datetime.strptime(
             f'{url_path[1]}T{url_path[2]}', '%Y-%m-%dT%H-%M-%S')
-        if response.status_code == 200:
-            response.raw.decode_content = True
-            data = io.BytesIO()
-            shutil.copyfileobj(response.raw, data)
-            data.seek(0)
-            with __max_image_size(200_000_000):
-                image = Image.open(data)
-            width, height = image.size
-            # The original image size had a height of 2048, so try to keep it within those bounds keeping the aspect ratio
-            scale = height / 2048
-            resized = image.resize((int(width / scale), int(height / scale)))
-            if self.cropped:
-                resized = ImageEditor(resized).crop(
-                    x=7036, y=162, width=1920, height=1080).image
-            return resized, date
-        else:
+
+        if response.status_code != 200:
             raise IOError(
                 f'Could not download latest image from {url}', response)
+
+        response.raw.decode_content = True
+        data = io.BytesIO()
+        shutil.copyfileobj(response.raw, data)
+        data.seek(0)
+        with max_image_size(200_000_000):
+            image = Image.open(data)
+        width, height = image.size
+        # The original image size had a height of 2048, so try to keep it within those bounds keeping the aspect ratio
+        scale = height / 2048
+        resized = image.resize((int(width / scale), int(height / scale)))
+        if self.cropped:
+            resized = ImageEditor(resized).crop(
+                x=7036, y=162, width=1920, height=1080).image
+        return resized, date
 
 
 @dataclass

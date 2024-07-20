@@ -1,14 +1,7 @@
-from datetime import date as Date
-from datetime import datetime
-
-from common.const import PACIFIC_TIMEZONE, mountain_history_filename_template
+from common.const import mountain_history_filename_template
 from common.image import ImageProvider
 from common.storage import Storage
-
-
-def _today() -> Date:
-    now = datetime.now(PACIFIC_TIMEZONE)
-    return now.date()
+from common.time import today
 
 
 class Snapshotter:
@@ -23,7 +16,7 @@ class Snapshotter:
         return f'{self.__class__.__name__}(image_provider={self.image_provider}, store={self.store})'
 
     def snapshot(self):
-        today_date = _today()
+        today_date = today()
         image, date = self.image_provider.get()
 
         date_str = date.strftime('%B %d %Y')
