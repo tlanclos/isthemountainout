@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass
 from sqlite3 import ProgrammingError
 from typing import List
@@ -17,6 +18,8 @@ from common.publishers.publisher import Publisher
 from common.publishers.twitter import TwitterApiKeys, TwitterPublisher
 from common.snapshot import Snapshotter
 from common.storage import LocalFile, LocalFileStorage
+
+DEFAULT_MODEL_FILEPATH = os.environ.get('DEFAULT_MODEL_FILEPATH', None)
 
 
 @dataclass
@@ -92,11 +95,12 @@ class ClassificationTrackerConfigurationSchema(OneOfSchema):
 class ClassifierConfigurationSchema(marshmallow.Schema):
     image_provider = marshmallow.fields.Nested(
         ImageProviderConfigurationSchema, required=True)
-    model = marshmallow.fields.Nested(FileConfigurationSchema, required=True)
+    model = marshmallow.fields.Nested(FileConfigurationSchema)
 
     @marshmallow.post_load
     def provide(self, data, **kwargs):
-        interpreter = load_saved_model(model_filepath=data['model'].filepath)
+        filepath = data['model'].filepath if data['model'] else DEFAULT_MODEL_FILEPATH
+        interpreter = load_saved_model(model_filepath=filepath)
         interpreter.allocate_tensors()
         return Classifier(
             interpreter=interpreter,

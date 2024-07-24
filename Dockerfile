@@ -11,7 +11,7 @@ RUN apt-get update && apt-get -y install cron python3 python3-pybind11 \
 # Build tensorflow lite from source
 #==================================
 RUN git clone --depth 1 --branch v2.14.0 https://github.com/tensorflow/tensorflow.git /opt/tensorflow
-RUN cd PYTHON=python3 /opt/tensorflow/tensorflow/lite/tools/pip_package/build_pip_package_with_bazel.sh native
+RUN PYTHON=python3 /opt/tensorflow/tensorflow/lite/tools/pip_package/build_pip_package_with_bazel.sh native
 
 # Build files and create deployments
 #===================================
@@ -24,14 +24,26 @@ RUN /opt/mountain/build/_venv/bin/pip install -r /opt/mountain/build/requirement
 RUN /opt/mountain/build/_venv/bin/pip install /opt/tensorflow/tensorflow/lite/tools/pip_package/gen/tflite_pip/python3/dist/tflite_runtime-2.14.0-cp310-cp310-linux_x86_64.whl
 
 COPY common /opt/mountain/build/common/
+COPY features /opt/mountain/build/features/
+COPY resources /opt/mountain/build/resources/
 COPY "*.py" /opt/mountain/build/
 WORKDIR /opt/mountain/build
+
+# Run tests
+#==========
+RUN _venv/bin/python -m behave
+
+# Build packages
+#===============
 RUN _venv/bin/python deploy.py prod-package
+RUN _venv/bin/python deploy.py model
+
 
 # Copy deployments to prep for installation
 #==========================================
 RUN mkdir -p /opt/mountain/prod
 RUN cp deploy/prod.zip /opt/mountain/prod/.
+RUN cp resources/model.tflite /opt/mountain/prod/.
 
 # Install cron services
 #=============================

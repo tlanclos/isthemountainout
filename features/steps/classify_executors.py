@@ -16,7 +16,7 @@ from common.storage import LocalFileStorage
 
 @when('classify is executed')
 @when('classify is executed {count:d} times')
-def execute_classify(context, count: int = 0):
+def execute_classify(context, count: int = 1):
     class NullImageProvider(ImageProvider):
         def get(self) -> Tuple[Image.Image, datetime]:
             return Image.new('RGBA', (100, 100)), context.today

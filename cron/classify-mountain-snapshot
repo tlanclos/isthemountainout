@@ -2,5 +2,5 @@
 
 source  /opt/mountain/prod/_venv/bin/activate
 pushd /opt/mountain/prod
-python classify.py \
-  --config="/config/configuration.yaml"
+DEFAULT_MODEL_FILEPATH="/opt/mountain/prod/model.tflite" \
+  python classify.py --config="/config/configuration.yaml"

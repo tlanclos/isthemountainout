@@ -48,7 +48,7 @@ Feature: Classification
       And the isthemountainout model interpreter
       And a mock publisher
      When the latest classification is hidden
-      And classify is executed
+      And classify is executed 4 times
      Then the classification, mystical, was posted exactly once
 
   Scenario: Posts only notable changes

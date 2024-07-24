@@ -35,6 +35,7 @@ def classification_is_only_posted_once(context, classification: str):
     posted_classifications = [
         c for c in context.classification_tracker.read_latest(
             count=sys.maxsize) if c.was_posted and c.classification == Label(classification.capitalize())]
+    print(posted_classifications)
 
     assert len(posted_classifications) == 1
 
