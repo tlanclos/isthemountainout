@@ -6,6 +6,7 @@ from typing import List
 from PIL import Image
 
 from common.frozenmodel import Label
+from common.time import today
 
 PUBLISHER_STATUSES = {
     Label.BEAUTIFUL: [
@@ -38,8 +39,8 @@ class Publisher:
         self._post(image, status=status, tags=tags)
 
     def _status_for_classification(self, classification: Label) -> str:
-        days_since_epoch = (datetime.now(timezone.utc) -
-                            datetime(1970, 1, 1)).days
+        days_since_epoch = (today(tz=timezone.utc) -
+                            datetime(1970, 1, 1, tzinfo=timezone.utc)).days
         r = random.Random(days_since_epoch)
         statuses = PUBLISHER_STATUSES.get(classification)
         if isinstance(statuses, list) and len(statuses) > 0:

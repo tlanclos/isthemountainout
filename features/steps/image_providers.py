@@ -2,6 +2,7 @@ import os
 from io import BytesIO
 from typing import Tuple
 from urllib.parse import ParseResult
+
 from behave import *
 from PIL import Image
 from requests.models import Response as Response

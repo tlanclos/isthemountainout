@@ -1,11 +1,10 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 import pytz
-from pytz import BaseTzInfo
 
 PACIFIC_TIMEZONE = pytz.timezone('US/Pacific')
 
 
-def today(tz: Optional[BaseTzInfo] = None) -> datetime:
+def today(tz: Optional[timezone] = None) -> datetime:
     return datetime.now(tz=tz)
