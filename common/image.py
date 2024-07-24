@@ -6,6 +6,7 @@ from datetime import date as Date
 from datetime import datetime
 from typing import Dict, Iterator, Optional, Tuple
 from urllib.parse import ParseResult, urlparse
+from common.time import today
 
 import requests
 from PIL import Image
@@ -137,7 +138,7 @@ class ConstantImageProvider(ImageProvider):
         return f'{self.__class__.__name__}(file={self.file})'
 
     def get(self) -> Tuple[Image.Image, datetime]:
-        return self.file.as_image(), datetime.now()
+        return self.file.as_image(), today()
 
 
 class ImageEditor:

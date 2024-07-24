@@ -72,7 +72,7 @@ if args.package == 'prod-package':
     ))
 elif args.package == 'model':
     weights_path = os.path.join('resources', 'weights.h5')
-    model_path = os.path.join('deploy', 'model.tflite')
+    model_path = os.path.join('resources', 'model.tflite')
     print(
         f'generating tflite model for weights {weights_path} -> {model_path}')
     with open(model_path, 'wb') as f:

@@ -15,8 +15,6 @@ from snapshot import main as snapshot_main
 
 @when('snapshot is executed')
 def execute_snapshot(context):
-    _, _today = context.image_rotation[0]
-
     class NullClassificationTracker(ClassificationTracker):
         def amend(self, classification: ClassificationRow):
             pass
@@ -29,19 +27,21 @@ def execute_snapshot(context):
 
     class NullImageProvider(ImageProvider):
         def get(self) -> Tuple[Image.Image, datetime]:
-            return Image.new('rgb', (100, 100)), _today
+            return Image.new('rgb', (100, 100)), context.today
 
-    with mock.patch('common.snapshot.today') as mock_today:
-        mock_today.return_value = _today
+    with mock.patch('common.snapshot.today') as mock_snapshot_today:
+        with mock.patch('common.image.today') as mock_image_today:
+            mock_snapshot_today.return_value = context.today
+            mock_image_today.return_value = context.today
 
-        snapshot_main(config=RootConfiguration(
-            brand=NullImageProvider(),
-            classifier=Classifier(
-                interpreter=None,
-                image_provider=context.image_provider),
-            classification_tracker=NullClassificationTracker(),
-            snapshotter=Snapshotter(
-                image_provider=context.image_provider,
-                store=context.storage
-            ),
-            publishers=[]))
+            snapshot_main(config=RootConfiguration(
+                brand=NullImageProvider(),
+                classifier=Classifier(
+                    interpreter=None,
+                    image_provider=context.image_provider),
+                classification_tracker=NullClassificationTracker(),
+                snapshotter=Snapshotter(
+                    image_provider=context.image_provider,
+                    store=context.storage
+                ),
+                publishers=[]))

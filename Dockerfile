@@ -11,8 +11,7 @@ RUN apt-get update && apt-get -y install cron python3 python3-pybind11 \
 # Build tensorflow lite from source
 #==================================
 RUN git clone --depth 1 --branch v2.14.0 https://github.com/tensorflow/tensorflow.git /opt/tensorflow
-RUN mkdir -p /opt/tensorflow/build
-RUN cd /opt/tensorflow/build && PYTHON=python3 ../tensorflow/lite/tools/pip_package/build_pip_package_with_bazel.sh native
+RUN cd PYTHON=python3 /opt/tensorflow/tensorflow/lite/tools/pip_package/build_pip_package_with_bazel.sh native
 
 # Build files and create deployments
 #===================================
