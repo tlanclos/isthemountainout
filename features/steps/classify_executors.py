@@ -15,7 +15,8 @@ from common.storage import LocalFileStorage
 
 
 @when('classify is executed')
-def execute_classify(context):
+@when('classify is executed {count:d} times')
+def execute_classify(context, count: int = 0):
     class NullImageProvider(ImageProvider):
         def get(self) -> Tuple[Image.Image, datetime]:
             return Image.new('RGBA', (100, 100)), context.today
@@ -26,17 +27,18 @@ def execute_classify(context):
             mock_publisher_today.return_value = context.today
 
             with TemporaryDirectory() as tempdir:
-                classify_main(
-                    config=RootConfiguration(
-                        brand=NullImageProvider(),
-                        classifier=Classifier(
-                            interpreter=context.interpreter,
-                            image_provider=context.image_provider
-                        ),
-                        classification_tracker=context.classification_tracker,
-                        snapshotter=Snapshotter(
-                            image_provider=NullImageProvider(),
-                            store=LocalFileStorage(base_path=tempdir)
-                        ),
-                        publishers=[context.publisher]),
-                    post=True)
+                for _ in range(count):
+                    classify_main(
+                        config=RootConfiguration(
+                            brand=NullImageProvider(),
+                            classifier=Classifier(
+                                interpreter=context.interpreter,
+                                image_provider=context.image_provider
+                            ),
+                            classification_tracker=context.classification_tracker,
+                            snapshotter=Snapshotter(
+                                image_provider=NullImageProvider(),
+                                store=LocalFileStorage(base_path=tempdir)
+                            ),
+                            publishers=[context.publisher]),
+                        post=True)

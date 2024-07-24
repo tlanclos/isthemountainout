@@ -1,14 +1,15 @@
 import os
+from datetime import datetime
 from io import BytesIO
-from typing import Tuple
+from typing import Sequence, Tuple
 from urllib.parse import ParseResult
 
 from behave import *
 from PIL import Image
 from requests.models import Response as Response
 
-from common.image import (ConstantImageProvider, SpaceNeedleImageProvider,
-                          max_image_size)
+from common.image import (ConstantImageProvider, ImageProvider,
+                          SpaceNeedleImageProvider, max_image_size)
 from common.storage import LocalFile
 from features.paths import RESOURCES_PATH
 
@@ -46,9 +47,29 @@ def provide_constant_image_provider(context):
     context.image_rotation = [context.image_provider.get()]
 
 
-@given('an image that classifies as "{classification:w}"')
-def provide_constant_image_provider_for_classification(context, classification: str):
-    context.image_provider = ConstantImageProvider(
-        file=LocalFile(filepath=os.path.join(
-            RESOURCES_PATH, f'mountain_{classification.lower()}.png')))
-    context.image_rotation = [context.image_provider.get()]
+@given('an image that classifies as {classifications}')
+def provide_constant_image_provider_for_classification(context, classifications: str):
+    class RotatingImageProvider(ImageProvider):
+        provider_rotation: Sequence[ImageProvider]
+        current_provider: int
+
+        def __init__(self, *, provider_rotation: Sequence[ImageProvider]):
+            assert len(provider_rotation) > 0
+            self.provider_rotation = provider_rotation
+            self.current_provider = -1
+
+        def get(self) -> Tuple[Image.Image, datetime]:
+            self.current_provider = (
+                self.current_provider + 1) % len(self.provider_rotation)
+            return self.provider_rotation[self.current_provider].get()
+
+    def _constant_image_provider(c: str) -> ConstantImageProvider:
+        return ConstantImageProvider(
+            file=LocalFile(
+                filepath=os.path.join(RESOURCES_PATH, f'mountain_{c.lower()}.png')))
+
+    provider_rotations = [_constant_image_provider(
+        c.strip()) for c in classifications.split(',')]
+    context.image_provider = RotatingImageProvider(
+        provider_rotation=provider_rotations)
+    context.image_rotation = [p.get() for p in provider_rotations]
