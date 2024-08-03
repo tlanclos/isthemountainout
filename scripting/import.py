@@ -1,8 +1,17 @@
+import argparse
 import csv
 import sqlite3
 from datetime import datetime
 
-filename = 'C:\\Users\\Taylor\\Documents\\sandbox\\isthemountainout\\IsTheMountainOutState - StateV2.csv'
+
+parser = argparse.ArgumentParser(
+    description='Import a CSV file into the database')
+parser.add_argument(
+    '--file',
+    help='Path to the CSV file')
+parser.add_argument(
+    '--db',
+    help='Path to the SQLite DB file')
 
 
 def amend(connection, row, times):
@@ -26,9 +35,10 @@ def amend(connection, row, times):
     ))
 
 
-with open(filename, 'r') as f:
+args = parser.parse_args()
+with open(args.file, 'r') as f:
     header = True
-    with sqlite3.connect('\\\\172.16.64.218\\appdata\\isthemountainout-config\\tracker.db') as connection:
+    with sqlite3.connect(args.db) as connection:
         cursor = connection.cursor()
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS classifications (
