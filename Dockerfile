@@ -57,7 +57,7 @@ RUN _venv/bin/pip install /opt/tensorflow/tensorflow/lite/tools/pip_package/gen/
 #=======================
 FROM ubuntu:jammy
 
-RUN apt-get update && apt-get -y install python3 curl libjpeg-turbo8 zlib1g 
+RUN apt-get update && apt-get -y install python3 curl libjpeg-turbo8 zlib1g tzdata
 
 # Install Supercronic
 #====================
